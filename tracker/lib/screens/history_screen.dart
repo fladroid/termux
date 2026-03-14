@@ -5,10 +5,11 @@ import '../models/button_model.dart';
 import '../models/entry_model.dart';
 import '../services/config_service.dart';
 import '../services/db_service.dart';
+import '../services/translation_service.dart';
+import '../services/app_theme.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
-
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
@@ -16,10 +17,11 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   final _config = ConfigService();
   final _db = DbService();
+  final _tr = TranslationService();
+  final _theme = AppTheme();
 
   List<ButtonModel> _buttons = [];
   Map<String, List<EntryModel>> _grouped = {};
-  String _language = 'en';
   bool _loading = true;
   _Period _period = _Period.week;
 
@@ -32,7 +34,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final buttons = await _config.loadButtons();
-    final language = await _config.getLanguage();
     final entries = await _db.getEntriesForRange(_periodStart(), DateTime.now());
     final grouped = <String, List<EntryModel>>{};
     for (final e in entries.reversed) {
@@ -40,7 +41,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
     setState(() {
       _buttons = buttons;
-      _language = language;
       _grouped = grouped;
       _loading = false;
     });
@@ -59,6 +59,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   String _pad(int n) => n.toString().padLeft(2, '0');
   String _formatTime(DateTime dt) => '${_pad(dt.hour)}:${_pad(dt.minute)}';
 
+  // Format datuma za listing: "Subota, 14. mart 2026."
+  String _formatFullDate(DateTime dt) => _tr.formatDate(dt);
+
   ButtonModel? _buttonFor(String id) {
     try { return _buttons.firstWhere((b) => b.id == id); }
     catch (_) { return null; }
@@ -72,10 +75,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return counts;
   }
 
+  // Parsira dateKey nazad u DateTime
+  DateTime _parseKey(String key) {
+    final parts = key.split('-');
+    return DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0E8),
+      backgroundColor: _theme.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -93,17 +102,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildTopBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFDDD8CE))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: _theme.border)),
       ),
       child: Row(children: [
         GestureDetector(
           onTap: () => Navigator.pop(context),
-          child: const Text('‹', style: TextStyle(fontSize: 22, color: Color(0xFF6B6560))),
+          child: Text('‹', style: TextStyle(fontSize: 22, color: _theme.inkLight)),
         ),
         const SizedBox(width: 16),
-        const Text('History', style: TextStyle(
-          fontFamily: 'monospace', fontSize: 18, fontWeight: FontWeight.w600)),
+        Text(_tr.t('history_title'), style: TextStyle(
+          fontFamily: 'monospace', fontSize: _theme.headerSize * 0.8,
+          fontWeight: FontWeight.w600, color: _theme.ink)),
       ]),
     );
   }
@@ -111,8 +121,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildPeriodSelector() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFDDD8CE))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: _theme.border)),
       ),
       child: Row(
         children: _Period.values.map((p) {
@@ -123,14 +133,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: selected ? const Color(0xFF2D5A27) : const Color(0xFFFAF7F2),
+                color: selected ? _theme.accent : _theme.surface,
                 border: Border.all(
-                  color: selected ? const Color(0xFF2D5A27) : const Color(0xFFDDD8CE)),
+                  color: selected ? _theme.accent : _theme.border),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: Text(p.label, style: TextStyle(
-                fontFamily: 'monospace', fontSize: 11,
-                color: selected ? Colors.white : const Color(0xFF6B6560))),
+              child: Text(p.label(_tr), style: TextStyle(
+                fontFamily: 'monospace', fontSize: _theme.captionSize,
+                color: selected ? _theme.accentText : _theme.inkLight)),
             ),
           );
         }).toList(),
@@ -140,8 +150,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildContent() {
     if (_grouped.isEmpty) {
-      return const Center(child: Text('No entries.',
-        style: TextStyle(fontFamily: 'monospace', fontSize: 12, color: Color(0xFFC8C0B4))));
+      return Center(child: Text(_tr.t('no_entries_period'),
+        style: TextStyle(fontFamily: 'monospace',
+          fontSize: _theme.captionSize, color: _theme.inkFaint)));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(20),
@@ -155,12 +166,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildDayCard(String dateKey, List<EntryModel> entries) {
     final counts = _countsByButton(entries);
+    final dt = _parseKey(dateKey);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF7F2),
-        border: Border.all(color: const Color(0xFFDDD8CE)),
+        color: _theme.surface,
+        border: Border.all(color: _theme.border),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -169,34 +182,38 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(dateKey, style: const TextStyle(
-                fontFamily: 'monospace', fontSize: 12,
-                fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+              Text(_formatFullDate(dt), style: TextStyle(
+                fontFamily: 'monospace', fontSize: _theme.captionSize,
+                fontWeight: FontWeight.w600, color: _theme.ink)),
               Row(children: counts.entries.map((e) {
                 final btn = _buttonFor(e.key);
                 return Padding(
                   padding: const EdgeInsets.only(left: 8),
                   child: Text('${btn?.symbol ?? '?'} ${e.value}',
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Color(0xFF6B6560))),
+                    style: TextStyle(fontFamily: 'monospace',
+                      fontSize: _theme.captionSize, color: _theme.inkLight)),
                 );
               }).toList()),
             ],
           ),
           const SizedBox(height: 10),
-          const Divider(color: Color(0xFFDDD8CE), height: 1),
+          Divider(color: _theme.border, height: 1),
           const SizedBox(height: 10),
           ...entries.map((e) {
             final btn = _buttonFor(e.buttonId);
             return Padding(
               padding: const EdgeInsets.only(bottom: 5),
               child: Row(children: [
-                Text(_formatTime(e.timestamp),
-                  style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Color(0xFF6B6560))),
+                Text(_formatTime(e.timestamp), style: TextStyle(
+                  fontFamily: 'monospace', fontSize: _theme.captionSize,
+                  color: _theme.inkLight)),
                 const SizedBox(width: 12),
-                Text(btn?.symbol ?? '?', style: const TextStyle(fontSize: 14)),
+                Text(btn?.symbol ?? '?', style: TextStyle(
+                  fontSize: _theme.symbolSize * 0.5, color: _theme.ink)),
                 const SizedBox(width: 8),
-                Text(btn?.getLabel(_language) ?? e.buttonId,
-                  style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Color(0xFF6B6560))),
+                Text(btn?.getLabel(_tr.language) ?? e.buttonId,
+                  style: TextStyle(fontFamily: 'monospace',
+                    fontSize: _theme.captionSize, color: _theme.inkLight)),
               ]),
             );
           }),
@@ -208,11 +225,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
 enum _Period {
   week, month, year;
-  String get label {
+  String label(TranslationService tr) {
     switch (this) {
-      case _Period.week:  return '7 days';
-      case _Period.month: return '30 days';
-      case _Period.year:  return '365 days';
+      case _Period.week:  return tr.t('period_7');
+      case _Period.month: return tr.t('period_30');
+      case _Period.year:  return tr.t('period_365');
     }
   }
 }

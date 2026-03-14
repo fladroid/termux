@@ -3,10 +3,11 @@
 import 'package:flutter/material.dart';
 import '../services/config_service.dart';
 import '../services/export_service.dart';
+import '../services/translation_service.dart';
+import '../services/app_theme.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
-
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
@@ -14,17 +15,15 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final _config = ConfigService();
   final _export = ExportService();
+  final _tr = TranslationService();
+  final _theme = AppTheme();
 
   String _language = 'en';
   bool _showLabels = true;
+  String _size = 'medium';
+  String _contrast = 'normal';
   bool _loading = true;
-
-  static const List<Map<String, String>> _languages = [
-    {'code': 'en',     'label': 'English'},
-    {'code': 'sr-lat', 'label': 'Srpski (latinica)'},
-    {'code': 'sr-cyr', 'label': 'Српски (ћирилица)'},
-    {'code': 'hr',     'label': 'Hrvatski'},
-  ];
+  List<Map<String, String>> _languages = [];
 
   @override
   void initState() {
@@ -35,7 +34,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _load() async {
     final language = await _config.getLanguage();
     final showLabels = await _config.getShowLabels();
-    setState(() { _language = language; _showLabels = showLabels; _loading = false; });
+    final size = await _config.getSize();
+    final contrast = await _config.getContrast();
+    final languages = await _config.loadLanguages();
+    setState(() {
+      _language = language;
+      _showLabels = showLabels;
+      _size = size;
+      _contrast = contrast;
+      _languages = languages;
+      _loading = false;
+    });
   }
 
   Future<void> _setLanguage(String lang) async {
@@ -48,15 +57,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _showLabels = value);
   }
 
+  Future<void> _setSize(String size) async {
+    await _config.setSize(size);
+    _theme.setSize(size);
+    setState(() => _size = size);
+  }
+
+  Future<void> _setContrast(String contrast) async {
+    await _config.setContrast(contrast);
+    _theme.setContrast(contrast);
+    setState(() => _contrast = contrast);
+  }
+
   Future<void> _resetToDefault() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Reset to default?'),
-        content: const Text('All settings return to factory values. Entries are not affected.'),
+        title: Text(_tr.t('reset_confirm_title')),
+        content: Text(_tr.t('reset_confirm_body')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Reset')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+            child: Text(_tr.t('reset_confirm_cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),
+            child: Text(_tr.t('reset_confirm_ok'))),
         ],
       ),
     );
@@ -67,9 +90,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final result = await _export.importJson();
     if (!mounted || result.cancelled) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: result.success
-          ? Text('Imported ${result.imported}, skipped ${result.skipped}')
-          : Text('Error: ${result.errorMessage}'),
+      content: Text(result.success
+        ? _tr.t('import_success', params: {
+            'imported': '${result.imported}',
+            'skipped': '${result.skipped}',
+          })
+        : _tr.t('import_error', params: {'error': result.errorMessage ?? ''})),
     ));
   }
 
@@ -77,16 +103,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final result = await _export.importCsv();
     if (!mounted || result.cancelled) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: result.success
-          ? Text('Imported ${result.imported}, skipped ${result.skipped}')
-          : Text('Error: ${result.errorMessage}'),
+      content: Text(result.success
+        ? _tr.t('import_success', params: {
+            'imported': '${result.imported}',
+            'skipped': '${result.skipped}',
+          })
+        : _tr.t('import_error', params: {'error': result.errorMessage ?? ''})),
     ));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0E8),
+      backgroundColor: _theme.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -103,17 +132,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildTopBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFDDD8CE))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: _theme.border)),
       ),
       child: Row(children: [
         GestureDetector(
           onTap: () => Navigator.pop(context),
-          child: const Text('‹', style: TextStyle(fontSize: 22, color: Color(0xFF6B6560))),
+          child: Text('‹', style: TextStyle(fontSize: 22, color: _theme.inkLight)),
         ),
         const SizedBox(width: 16),
-        const Text('Settings', style: TextStyle(
-          fontFamily: 'monospace', fontSize: 18, fontWeight: FontWeight.w600)),
+        Text(_tr.t('settings_title'), style: TextStyle(
+          fontFamily: 'monospace', fontSize: _theme.headerSize * 0.8,
+          fontWeight: FontWeight.w600, color: _theme.ink)),
       ]),
     );
   }
@@ -124,66 +154,134 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionLabel('Display'),
-          _settingsRow(label: 'Show labels',
+
+          _sectionLabel(_tr.t('settings_display')),
+          _settingsRow(
+            label: _tr.t('settings_show_labels'),
             trailing: Switch(value: _showLabels, onChanged: _setShowLabels,
-              activeColor: const Color(0xFF2D5A27))),
+              activeColor: _theme.accent)),
+          const SizedBox(height: 12),
+          _sectionLabel(_tr.t('settings_size')),
+          _segmentedControl(
+            options: [
+              {'value': 'small',  'label': _tr.t('settings_size_small')},
+              {'value': 'medium', 'label': _tr.t('settings_size_medium')},
+              {'value': 'large',  'label': _tr.t('settings_size_large')},
+            ],
+            selected: _size,
+            onSelect: _setSize,
+          ),
+          const SizedBox(height: 12),
+          _sectionLabel(_tr.t('settings_contrast')),
+          _segmentedControl(
+            options: [
+              {'value': 'normal', 'label': _tr.t('settings_contrast_normal')},
+              {'value': 'high',   'label': _tr.t('settings_contrast_high')},
+            ],
+            selected: _contrast,
+            onSelect: _setContrast,
+          ),
           const SizedBox(height: 28),
-          _sectionLabel('Language'),
-          ..._languages.map((lang) {
-            final selected = _language == lang['code'];
-            return GestureDetector(
-              onTap: () => _setLanguage(lang['code']!),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: selected ? const Color(0xFF2D5A27) : const Color(0xFFFAF7F2),
-                  border: Border.all(
-                    color: selected ? const Color(0xFF2D5A27) : const Color(0xFFDDD8CE)),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(lang['label']!, style: TextStyle(
-                      fontFamily: 'monospace', fontSize: 13,
-                      color: selected ? Colors.white : const Color(0xFF1A1A1A))),
-                    if (selected)
-                      const Text('✓', style: TextStyle(color: Colors.white, fontSize: 14)),
-                  ],
-                ),
-              ),
-            );
-          }),
+
+          _sectionLabel(_tr.t('settings_language')),
+          _buildLanguageDropdown(),
           const SizedBox(height: 28),
-          _sectionLabel('Export'),
-          _actionButton('Export JSON', () => _export.exportJson()),
+
+          _sectionLabel(_tr.t('settings_export')),
+          _actionButton(_tr.t('settings_export_json'), () => _export.exportJson()),
           const SizedBox(height: 6),
-          _actionButton('Export CSV', () => _export.exportCsv()),
+          _actionButton(_tr.t('settings_export_csv'), () => _export.exportCsv()),
           const SizedBox(height: 6),
-          _actionButton('Export JSON (include deleted)', () => _export.exportJson(includeDeleted: true)),
+          _actionButton(_tr.t('settings_export_json_all'), () => _export.exportJson(includeDeleted: true)),
           const SizedBox(height: 6),
-          _actionButton('Export CSV (include deleted)', () => _export.exportCsv(includeDeleted: true)),
+          _actionButton(_tr.t('settings_export_csv_all'), () => _export.exportCsv(includeDeleted: true)),
           const SizedBox(height: 28),
-          _sectionLabel('Import'),
-          _actionButton('Import JSON', _importJson),
+
+          _sectionLabel(_tr.t('settings_import')),
+          _actionButton(_tr.t('settings_import_json'), _importJson),
           const SizedBox(height: 6),
-          _actionButton('Import CSV', _importCsv),
+          _actionButton(_tr.t('settings_import_csv'), _importCsv),
           const SizedBox(height: 28),
-          _sectionLabel('Reset'),
-          _actionButton('Reset to default', _resetToDefault, destructive: true),
+
+          _sectionLabel(_tr.t('settings_reset')),
+          _actionButton(_tr.t('settings_reset_btn'), _resetToDefault, destructive: true),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
+  Widget _buildLanguageDropdown() {
+    if (_languages.isEmpty) return const SizedBox();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: _theme.surface,
+        border: Border.all(color: _theme.border),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _language,
+          isExpanded: true,
+          dropdownColor: _theme.surface,
+          style: TextStyle(
+            fontFamily: 'monospace',
+            fontSize: _theme.bodySize,
+            color: _theme.ink,
+          ),
+          items: _languages.map((lang) {
+            return DropdownMenuItem<String>(
+              value: lang['code'],
+              child: Text(lang['label'] ?? lang['code'] ?? ''),
+            );
+          }).toList(),
+          onChanged: (val) { if (val != null) _setLanguage(val); },
+        ),
+      ),
+    );
+  }
+
+  Widget _segmentedControl({
+    required List<Map<String, String>> options,
+    required String selected,
+    required Function(String) onSelect,
+  }) {
+    return Row(
+      children: options.map((opt) {
+        final isSelected = selected == opt['value'];
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => onSelect(opt['value']!),
+            child: Container(
+              margin: const EdgeInsets.only(right: 4),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected ? _theme.accent : _theme.surface,
+                border: Border.all(
+                  color: isSelected ? _theme.accent : _theme.border),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Center(
+                child: Text(opt['label']!, style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: _theme.captionSize,
+                  color: isSelected ? _theme.accentText : _theme.inkLight,
+                )),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   Widget _sectionLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(text.toUpperCase(), style: const TextStyle(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(text.toUpperCase(), style: TextStyle(
         fontFamily: 'monospace', fontSize: 10,
-        letterSpacing: 1.2, color: Color(0xFFC8C0B4))),
+        letterSpacing: 1.2, color: _theme.inkFaint)),
     );
   }
 
@@ -191,14 +289,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF7F2),
-        border: Border.all(color: const Color(0xFFDDD8CE)),
+        color: _theme.surface,
+        border: Border.all(color: _theme.border),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
+          Text(label, style: TextStyle(
+            fontFamily: 'monospace', fontSize: _theme.bodySize, color: _theme.ink)),
           trailing,
         ],
       ),
@@ -212,14 +311,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFFFAF7F2),
+          color: _theme.surface,
           border: Border.all(
-            color: destructive ? const Color(0xFF8B2020) : const Color(0xFFDDD8CE)),
+            color: destructive ? _theme.destructive : _theme.border),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(label, style: TextStyle(
-          fontFamily: 'monospace', fontSize: 13,
-          color: destructive ? const Color(0xFF8B2020) : const Color(0xFF1A1A1A))),
+          fontFamily: 'monospace', fontSize: _theme.bodySize,
+          color: destructive ? _theme.destructive : _theme.ink)),
       ),
     );
   }

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../models/button_model.dart';
+import '../services/app_theme.dart';
 
 class SymbolButton extends StatefulWidget {
   final ButtonModel button;
@@ -29,6 +30,7 @@ class _SymbolButtonState extends State<SymbolButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnim;
+  final _theme = AppTheme();
 
   @override
   void initState() {
@@ -65,9 +67,9 @@ class _SymbolButtonState extends State<SymbolButton>
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
           decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF2D5A27) : const Color(0xFFFAF7F2),
+            color: isActive ? _theme.accent : _theme.surface,
             border: Border.all(
-              color: isActive ? const Color(0xFF2D5A27) : const Color(0xFF1A1A1A),
+              color: isActive ? _theme.accent : _theme.ink,
               width: 1.5,
             ),
             borderRadius: BorderRadius.circular(8),
@@ -81,10 +83,10 @@ class _SymbolButtonState extends State<SymbolButton>
                     '${widget.todayCount}×',
                     style: TextStyle(
                       fontFamily: 'monospace',
-                      fontSize: 10,
+                      fontSize: _theme.badgeSize,
                       color: isActive
                           ? Colors.white.withOpacity(0.5)
-                          : const Color(0xFFC8C0B4),
+                          : _theme.inkFaint,
                     ),
                   ),
                 ),
@@ -92,24 +94,21 @@ class _SymbolButtonState extends State<SymbolButton>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      widget.button.symbol,
-                      style: TextStyle(
-                        fontSize: 32,
-                        color: isActive ? Colors.white : const Color(0xFF1A1A1A),
-                      ),
-                    ),
+                    Text(widget.button.symbol, style: TextStyle(
+                      fontSize: _theme.symbolSize,
+                      color: isActive ? _theme.accentText : _theme.ink,
+                    )),
                     if (widget.showLabel) ...[
                       const SizedBox(height: 6),
                       Text(
                         widget.button.getLabel(widget.language),
                         style: TextStyle(
                           fontFamily: 'monospace',
-                          fontSize: 9,
+                          fontSize: _theme.labelSize,
                           letterSpacing: 0.8,
                           color: isActive
                               ? Colors.white.withOpacity(0.6)
-                              : const Color(0xFFC8C0B4),
+                              : _theme.inkFaint,
                         ),
                       ),
                     ],

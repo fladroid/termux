@@ -1,12 +1,23 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
+import 'services/config_service.dart';
+import 'services/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/settings_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicijalizacija servisa
+  final config = ConfigService();
+  await config.initTranslations();
+
+  final size = await config.getSize();
+  final contrast = await config.getContrast();
+  AppTheme().init(size, contrast);
+
   runApp(const TrackerApp());
 }
 
@@ -28,9 +39,9 @@ class TrackerApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/':         (ctx) => const HomeScreen(),
-        '/history':  (ctx) => const HistoryScreen(),
-        '/settings': (ctx) => const SettingsScreen(),
+        '/':          (ctx) => const HomeScreen(),
+        '/history':   (ctx) => const HistoryScreen(),
+        '/settings':  (ctx) => const SettingsScreen(),
       },
     );
   }

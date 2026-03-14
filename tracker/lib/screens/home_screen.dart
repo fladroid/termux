@@ -5,11 +5,12 @@ import '../models/button_model.dart';
 import '../models/entry_model.dart';
 import '../services/config_service.dart';
 import '../services/db_service.dart';
+import '../services/translation_service.dart';
+import '../services/app_theme.dart';
 import '../widgets/symbol_button.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -17,13 +18,17 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _config = ConfigService();
   final _db = DbService();
+  final _tr = TranslationService();
+  final _theme = AppTheme();
 
   List<ButtonModel> _buttons = [];
   List<EntryModel> _todayEntries = [];
-  String _language = 'en';
   bool _showLabels = true;
   DateTime _selectedDate = DateTime.now();
   bool _loading = true;
+
+  // Pamtimo za koje datume smo već pokazali warning u ovoj sesiji
+  final Set<String> _warnedDates = {};
 
   @override
   void initState() {
@@ -34,19 +39,66 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final buttons = await _config.loadButtons();
-    final language = await _config.getLanguage();
     final showLabels = await _config.getShowLabels();
     final entries = await _db.getEntriesForDate(_selectedDate);
     setState(() {
       _buttons = buttons;
-      _language = language;
       _showLabels = showLabels;
       _todayEntries = entries;
       _loading = false;
     });
   }
 
+  bool _isToday(DateTime dt) {
+    final now = DateTime.now();
+    return dt.year == now.year && dt.month == now.month && dt.day == now.day;
+  }
+
+  String _dateKey(DateTime dt) => '${dt.year}-${dt.month}-${dt.day}';
+
+  Future<bool> _checkDateWarning(DateTime dt) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selected = DateTime(dt.year, dt.month, dt.day);
+    final diff = selected.difference(today).inDays;
+
+    if (diff == 0) return true; // Danas — nema warning
+
+    final key = _dateKey(dt);
+    if (_warnedDates.contains(key)) return true; // Već upozoren
+
+    final isPast = diff < 0;
+    final title = isPast ? _tr.t('past_warning_title') : _tr.t('future_warning_title');
+    final body = isPast ? _tr.t('past_warning_body') : _tr.t('future_warning_body');
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(_tr.t('warning_cancel')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(_tr.t('warning_ok')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      _warnedDates.add(key);
+      return true;
+    }
+    return false;
+  }
+
   Future<void> _handleTap(ButtonModel button) async {
+    final allowed = await _checkDateWarning(_selectedDate);
+    if (!allowed) return;
     await _db.insert(button.id);
     final entries = await _db.getEntriesForDate(_selectedDate);
     setState(() => _todayEntries = entries);
@@ -58,11 +110,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Undo last entry?'),
+        title: Text(_tr.t('undo_title')),
         content: Text('${button.symbol} — ${_formatTime(last.timestamp)}'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(_tr.t('undo_no'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(_tr.t('undo_yes'))),
         ],
       ),
     );
@@ -89,21 +141,10 @@ class _HomeScreenState extends State<HomeScreen> {
   String _formatTime(DateTime dt) => '${_pad(dt.hour)}:${_pad(dt.minute)}';
   String _pad(int n) => n.toString().padLeft(2, '0');
 
-  String _formatDate(DateTime dt) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final selected = DateTime(dt.year, dt.month, dt.day);
-    final diff = selected.difference(today).inDays;
-    if (diff == 0) return 'Today';
-    if (diff == -1) return 'Yesterday';
-    if (diff == 1) return 'Tomorrow';
-    return '${dt.day}.${dt.month}.${dt.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0E8),
+      backgroundColor: _theme.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -121,10 +162,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTopBar() {
+    final mainLabel = _tr.formatHeaderMain(_selectedDate);
+    final isRelative = _isToday(_selectedDate) ||
+        _selectedDate.difference(DateTime.now()).inDays.abs() == 1;
+    final subLabel = isRelative ? _tr.formatHeaderSub(_selectedDate) : null;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFDDD8CE))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: _theme.border)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -132,16 +178,27 @@ class _HomeScreenState extends State<HomeScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_formatDate(_selectedDate),
-                style: const TextStyle(
-                  fontFamily: 'monospace', fontSize: 22,
-                  fontWeight: FontWeight.w600, letterSpacing: -0.5,
+              Text(mainLabel, style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: _theme.headerSize,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.5,
+                color: _theme.ink,
+              )),
+              if (subLabel != null)
+                Text(subLabel, style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: _theme.captionSize,
+                  color: _theme.inkLight,
                 )),
-              Text('${_todayEntries.length} entries',
-                style: const TextStyle(
-                  fontFamily: 'monospace', fontSize: 12,
-                  color: Color(0xFF6B6560),
-                )),
+              Text(
+                '${_todayEntries.length} ${_tr.t(_todayEntries.length == 1 ? 'entry' : 'entries')}',
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: _theme.captionSize,
+                  color: _theme.inkLight,
+                ),
+              ),
             ],
           ),
           Row(children: [
@@ -162,13 +219,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Container(
         width: 32, height: 32,
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFC8C0B4)),
+          border: Border.all(color: _theme.inkFaint),
           borderRadius: BorderRadius.circular(4),
         ),
-        child: Center(
-          child: Text(label,
-            style: const TextStyle(fontSize: 16, color: Color(0xFF6B6560))),
-        ),
+        child: Center(child: Text(label,
+          style: TextStyle(fontSize: 16, color: _theme.inkLight))),
       ),
     );
   }
@@ -201,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onLongPress: () => _handleLongPress(btn),
           child: SymbolButton(
             button: btn,
-            language: _language,
+            language: _tr.language,
             showLabel: _showLabels,
             todayCount: _countForButton(btn.id),
             isActive: _isActive(btn.id),
@@ -214,15 +269,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildLog() {
     if (_todayEntries.isEmpty) {
-      return const Text('No entries yet.',
-        style: TextStyle(fontFamily: 'monospace', fontSize: 12, color: Color(0xFFC8C0B4)));
+      return Text(_tr.t('no_entries'),
+        style: TextStyle(fontFamily: 'monospace',
+          fontSize: _theme.captionSize, color: _theme.inkFaint));
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('LOG',
-          style: TextStyle(fontFamily: 'monospace', fontSize: 10,
-            letterSpacing: 1.2, color: Color(0xFFC8C0B4))),
+        Text(_tr.t('log'), style: TextStyle(
+          fontFamily: 'monospace', fontSize: _theme.captionSize,
+          letterSpacing: 1.2, color: _theme.inkFaint)),
         const SizedBox(height: 10),
         ..._todayEntries.reversed.map((e) {
           final btn = _buttons.firstWhere(
@@ -232,13 +288,16 @@ class _HomeScreenState extends State<HomeScreen> {
           return Padding(
             padding: const EdgeInsets.only(bottom: 6),
             child: Row(children: [
-              Text(_formatTime(e.timestamp),
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Color(0xFF6B6560))),
+              Text(_formatTime(e.timestamp), style: TextStyle(
+                fontFamily: 'monospace', fontSize: _theme.captionSize,
+                color: _theme.inkLight)),
               const SizedBox(width: 12),
-              Text(btn.symbol, style: const TextStyle(fontSize: 16)),
+              Text(btn.symbol, style: TextStyle(
+                fontSize: _theme.symbolSize * 0.5, color: _theme.ink)),
               const SizedBox(width: 8),
-              Text(btn.getLabel(_language),
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Color(0xFF6B6560))),
+              Text(btn.getLabel(_tr.language), style: TextStyle(
+                fontFamily: 'monospace', fontSize: _theme.captionSize,
+                color: _theme.inkLight)),
             ]),
           );
         }),
@@ -248,27 +307,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBottomBar() {
     return Container(
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0xFFDDD8CE))),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: _theme.border)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: Row(children: [
-        _bottomBtn('◉', 'Today', true, () {
+        _bottomBtn('◉', _tr.t('nav_today'), true, () {
           setState(() => _selectedDate = DateTime.now());
           _load();
         }),
-        _bottomBtn('◫', 'History', false,
+        _bottomBtn('◫', _tr.t('nav_history'), false,
           () => Navigator.pushNamed(context, '/history').then((_) => _load())),
-        _bottomBtn('↗', 'Export', false,
+        _bottomBtn('↗', _tr.t('nav_export'), false,
           () => Navigator.pushNamed(context, '/settings')),
-        _bottomBtn('⚙', 'Settings', false,
+        _bottomBtn('⚙', _tr.t('nav_settings'), false,
           () => Navigator.pushNamed(context, '/settings').then((_) => _load())),
       ]),
     );
   }
 
   Widget _bottomBtn(String icon, String label, bool active, VoidCallback onTap) {
-    final color = active ? const Color(0xFF2D5A27) : const Color(0xFFC8C0B4);
+    final color = active ? _theme.accent : _theme.inkFaint;
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
