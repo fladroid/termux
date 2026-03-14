@@ -8,6 +8,7 @@ import '../services/db_service.dart';
 import '../services/translation_service.dart';
 import '../services/app_theme.dart';
 import '../widgets/counter_button.dart';
+import '../widgets/text_button_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<ButtonModel>  _buttons    = [];
   Map<String, int>   _values     = {};
+  Map<String, String> _textValues = {};
   bool               _showLabels = true;
   DateTime           _selectedDate = DateTime.now();
   bool               _loading    = true;
@@ -33,13 +35,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final buttons    = await _config.loadButtons();
-    final showLabels = await _config.getShowLabels();
-    final values     = await _db.getValuesForDate(_selectedDate);
+    final buttons     = await _config.loadButtons();
+    final showLabels  = await _config.getShowLabels();
+    final values      = await _db.getValuesForDate(_selectedDate);
+    final textValues  = await _db.getTextValuesForDate(_selectedDate);
     setState(() {
       _buttons    = buttons;
       _showLabels = showLabels;
       _values     = values;
+      _textValues = textValues;
       _loading    = false;
     });
   }
@@ -74,27 +78,22 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _handleChange(ButtonModel button, int delta) async {
     final allowed = await _checkDateWarning(_selectedDate);
     if (!allowed) return;
-
     final current = _values[button.id] ?? 0;
-    if (delta < 0 && current <= 0) return; // Ne ispod 0
-
+    if (delta < 0 && current <= 0) return;
     final newValue = await _db.changeValue(button.id, _selectedDate, delta);
-
-    // Log promjenu
-    await _db.addLog(
-      type:     LogType.counter,
-      buttonId: button.id,
-      delta:    delta,
-    );
-
+    await _db.addLog(type: LogType.counter, buttonId: button.id, delta: delta);
     setState(() => _values[button.id] = newValue);
   }
 
+  Future<void> _handleTextSave(ButtonModel button, String text) async {
+    final allowed = await _checkDateWarning(_selectedDate);
+    if (!allowed) return;
+    await _db.saveTextValue(button.id, _selectedDate, text);
+    setState(() => _textValues[button.id] = text);
+  }
+
   void _changeDate(int days) {
-    setState(() {
-      _selectedDate = _selectedDate.add(Duration(days: days));
-      _loading = true;
-    });
+    setState(() { _selectedDate = _selectedDate.add(Duration(days: days)); _loading = true; });
     _load();
   }
 
@@ -173,38 +172,53 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildContent() {
+    // Odijeli counter od text buttona
+    final counters = _buttons.where((b) => b.isCounter).toList();
+    final texts    = _buttons.where((b) => b.isText).toList();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(12),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: 1.2,
-        ),
-        itemCount: _buttons.length,
-        itemBuilder: (ctx, i) {
-          final btn = _buttons[i];
-          if (btn.isCounter) {
-            return CounterButton(
-              button:    btn,
-              value:     _values[btn.id] ?? 0,
-              showLabel: _showLabels,
-              onPlus:    () => _handleChange(btn,  1),
-              onMinus:   () => _handleChange(btn, -1),
-            );
-          }
-          // Text gumb — placeholder za v1.3
-          return Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: _theme.border),
-              borderRadius: BorderRadius.circular(8)),
-            child: Center(child: Text(btn.symbol,
-              style: TextStyle(fontSize: _theme.symbolSize))),
-          );
-        },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Counter grid
+          if (counters.isNotEmpty)
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                childAspectRatio: 1.2,
+              ),
+              itemCount: counters.length,
+              itemBuilder: (ctx, i) {
+                final btn = counters[i];
+                return CounterButton(
+                  button:    btn,
+                  value:     _values[btn.id] ?? 0,
+                  showLabel: _showLabels,
+                  onPlus:    () => _handleChange(btn,  1),
+                  onMinus:   () => _handleChange(btn, -1),
+                );
+              },
+            ),
+
+          // Text containeri ispod countera
+          if (texts.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ...texts.map((btn) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: TextButtonWidget(
+                button:    btn,
+                savedText: _textValues[btn.id],
+                showLabel: _showLabels,
+                onSave:    (text) => _handleTextSave(btn, text),
+              ),
+            )),
+          ],
+        ],
       ),
     );
   }

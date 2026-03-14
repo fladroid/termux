@@ -19,7 +19,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   final _db      = DbService();
   final _tr      = TranslationService();
   final _theme   = AppTheme();
-  final _hScroll = ScrollController();
 
   List<ButtonModel>   _buttons = [];
   List<LogEntryModel> _entries = [];
@@ -30,9 +29,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   void initState() { super.initState(); _load(); }
-
-  @override
-  void dispose() { _hScroll.dispose(); super.dispose(); }
 
   Future<void> _load() async {
     setState(() => _loading = true);
@@ -45,15 +41,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
       to   = DateTime(_rangeTo.year,   _rangeTo.month,   _rangeTo.day,  23, 59, 59);
     } else {
       final days = _period == _Period.week ? 7 : 30;
-      // FIX: koristimo subtract za ispravno računanje datuma unazad
       from = DateTime(now.year, now.month, now.day, 0, 0, 0)
           .subtract(Duration(days: days));
       to   = DateTime(now.year, now.month, now.day, 23, 59, 59);
     }
 
     final entries = await _db.getLogForRange(
-      from: from,
-      to:   to,
+      from: from, to: to,
       includeDeleted: _period == _Period.range,
     );
 
@@ -88,7 +82,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     catch (_) { return null; }
   }
 
-  String _p(int n)         => n.toString().padLeft(2, '0');
+  String _p(int n)             => n.toString().padLeft(2, '0');
   String _fmtDate(DateTime dt) => '${_p(dt.day)}.${_p(dt.month)}.${dt.year.toString().substring(2)}';
   String _fmtTime(DateTime dt) => '${_p(dt.hour)}:${_p(dt.minute)}';
   String _fmtDay(DateTime dt)  {
@@ -96,13 +90,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return name.length >= 3 ? name.substring(0, 3) : name;
   }
 
-  // Fiksne sirine kolona — ukupno ~360px, stane na svaki ekran
-  static const double _wDay    = 30;
-  static const double _wDate   = 58;
-  static const double _wTime   = 40;
-  static const double _wSymbol = 24;
-  static const double _wLabel  = 80;
-  static const double _wDelta  = 28;
+  // Kolone — točno definirane širine u pikselima
+  // Dan: 28, Datum: 52, Vrij: 38, Sim: 22, Labela: 70, +/-: 24
+  // Ukupno: 28+52+38+22+70+24 + razmaci(5x4=20) = 254px — stane na svaki ekran
+  static const double _wDay    = 28;
+  static const double _wDate   = 52;
+  static const double _wTime   = 38;
+  static const double _wSym    = 22;
+  static const double _wLabel  = 70;
+  static const double _wDelta  = 24;
+  static const double _gap     =  4;
 
   @override
   Widget build(BuildContext context) {
@@ -128,17 +125,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
         GestureDetector(
           onTap: () => Navigator.pop(context),
           child: Text('‹', style: TextStyle(fontSize: 22, color: _theme.inkLight))),
-        const SizedBox(width: 16),
+        const SizedBox(width: 12),
+        // Naslov lijevo poravnan
         Text(_tr.t('history_title'), style: TextStyle(
           fontFamily: 'monospace', fontSize: _theme.headerSize * 0.8,
           fontWeight: FontWeight.w600, color: _theme.ink)),
         const Spacer(),
         if (_period == _Period.range)
-          Text('${_fmtDate(_rangeFrom)} – ${_fmtDate(_rangeTo)}',
+          Text('${_fmtDate(_rangeFrom)}–${_fmtDate(_rangeTo)}',
             style: TextStyle(fontFamily: 'monospace',
               fontSize: _theme.captionSize, color: _theme.inkLight)),
-        const SizedBox(width: 8),
-        Text('${_entries.length} ${_tr.t(_entries.length == 1 ? "entry" : "entries")}',
+        const SizedBox(width: 6),
+        Text('${_entries.length}',
           style: TextStyle(fontFamily: 'monospace',
             fontSize: _theme.captionSize, color: _theme.inkFaint)),
       ]),
@@ -147,18 +145,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildPeriodSelector() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: _theme.border))),
       child: Row(children: [
         _periodBtn(_Period.week,  _tr.t('period_7')),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         _periodBtn(_Period.month, _tr.t('period_30')),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         GestureDetector(
           onTap: _pickRange,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: _period == _Period.range ? _theme.accent : _theme.surface,
               border: Border.all(
@@ -178,7 +176,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return GestureDetector(
       onTap: () { setState(() => _period = p); _load(); },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: sel ? _theme.accent : _theme.surface,
           border: Border.all(color: sel ? _theme.accent : _theme.border),
@@ -190,28 +188,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  // Header — horizontalni scroll sinhroniziran s listom
   Widget _buildTableHeader() {
     return Container(
       color: _theme.surface,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: _theme.border, width: 1.5))),
-      child: SingleChildScrollView(
-        controller: _hScroll,
-        scrollDirection: Axis.horizontal,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: _tableRow(
-            day:    _tr.t('col_day'),
-            date:   _tr.t('col_date'),
-            time:   _tr.t('col_time'),
-            symbol: _tr.t('col_symbol'),
-            label:  _tr.t('col_label'),
-            delta:  _tr.t('col_delta'),
-            isHeader: true,
-            deleted:  false,
-          ),
-        ),
+      child: _tableRow(
+        day:    _tr.t('col_day'),
+        date:   _tr.t('col_date'),
+        time:   _tr.t('col_time'),
+        symbol: _tr.t('col_symbol'),
+        label:  _tr.t('col_label'),
+        delta:  _tr.t('col_delta'),
+        isHeader: true,
+        deleted:  false,
       ),
     );
   }
@@ -222,37 +213,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
         style: TextStyle(fontFamily: 'monospace',
           fontSize: _theme.captionSize, color: _theme.inkFaint)));
     }
-
     return ListView.builder(
       itemCount: _entries.length,
       itemBuilder: (ctx, i) {
         final e   = _entries[i];
         final btn = _buttonFor(e.buttonId);
         final dt  = e.dateTime;
-
         final deltaStr = e.delta != null
             ? (e.delta! > 0 ? '+${e.delta}' : '${e.delta}')
             : (e.textValue != null ? '✎' : '');
 
         return Container(
           color: i % 2 == 0 ? _theme.surface : _theme.background,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              child: _tableRow(
-                day:    _fmtDay(dt),
-                date:   _fmtDate(dt),
-                time:   _fmtTime(dt),
-                symbol: btn?.symbol ?? (e.type == LogType.settings ? '⚙' : '?'),
-                label:  e.type == LogType.settings
-                    ? (e.textValue ?? 'settings')
-                    : (btn?.getLabel(_tr.language) ?? e.buttonId ?? ''),
-                delta:  deltaStr,
-                isHeader: false,
-                deleted:  e.deleted,
-              ),
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: _tableRow(
+            day:    _fmtDay(dt),
+            date:   _fmtDate(dt),
+            time:   _fmtTime(dt),
+            symbol: btn?.symbol ?? (e.type == LogType.settings ? '⚙' : '?'),
+            label:  e.type == LogType.settings
+                ? (e.textValue ?? 'settings')
+                : (btn?.getLabel(_tr.language) ?? e.buttonId ?? ''),
+            delta:    deltaStr,
+            isHeader: false,
+            deleted:  e.deleted,
           ),
         );
       },
@@ -263,44 +247,55 @@ class _HistoryScreenState extends State<HistoryScreen> {
     required String day, date, time, symbol, label, delta,
     required bool isHeader, required bool deleted,
   }) {
-    final fs   = isHeader ? _theme.captionSize - 1 : _theme.captionSize;
-    final col  = isHeader ? _theme.inkFaint
+    final fs  = isHeader ? _theme.captionSize - 1 : _theme.captionSize;
+    final col = isHeader ? _theme.inkFaint
         : deleted ? _theme.inkFaint : _theme.inkMedium;
     final deco = deleted && !isHeader
         ? TextDecoration.lineThrough : TextDecoration.none;
 
-    TextStyle s(double w, {Color? color, double? fontSize, bool noStrike = false}) =>
-        TextStyle(
-          fontFamily: 'monospace',
-          fontSize:   fontSize ?? fs,
-          fontWeight: isHeader ? FontWeight.w600 : FontWeight.normal,
-          color:      color ?? col,
-          decoration: noStrike ? TextDecoration.none : deco,
-        );
+    // Sve kolone lijevo poravnane, fiksnih širina, bez prelamanja
+    TextStyle st({Color? c, double? size, bool noStrike = false}) => TextStyle(
+      fontFamily:  'monospace',
+      fontSize:    size ?? fs,
+      fontWeight:  isHeader ? FontWeight.w600 : FontWeight.normal,
+      color:       c ?? col,
+      decoration:  noStrike ? TextDecoration.none : deco,
+    );
 
-    Color deltaColor = col;
+    Color dc = col;
     if (!isHeader) {
-      if (delta.startsWith('+')) deltaColor = _theme.positive;
-      if (delta.startsWith('-')) deltaColor = _theme.destructive;
+      if (delta.startsWith('+')) dc = _theme.positive;
+      if (delta.startsWith('-')) dc = _theme.destructive;
     }
 
-    return Row(children: [
-      SizedBox(width: _wDay,    child: Text(day,    style: s(_wDay))),
-      const SizedBox(width: 6),
-      SizedBox(width: _wDate,   child: Text(date,   style: s(_wDate))),
-      const SizedBox(width: 6),
-      SizedBox(width: _wTime,   child: Text(time,   style: s(_wTime))),
-      const SizedBox(width: 6),
-      SizedBox(width: _wSymbol, child: Text(symbol, style: s(_wSymbol,
-        fontSize: isHeader ? fs : fs + 3, noStrike: true))),
-      const SizedBox(width: 6),
-      SizedBox(width: _wLabel,  child: Text(label,  style: s(_wLabel),
-        overflow: TextOverflow.ellipsis)),
-      const SizedBox(width: 6),
-      SizedBox(width: _wDelta,  child: Text(delta,
-        style: s(_wDelta, color: deltaColor, noStrike: true),
-        textAlign: TextAlign.right)),
-    ]);
+    Widget cell(double w, String text, {TextStyle? style, TextAlign align = TextAlign.left}) =>
+        SizedBox(
+          width: w,
+          child: Text(text,
+            style: style ?? st(),
+            overflow: TextOverflow.clip,
+            softWrap: false,      // NIKAD ne prelama u novi red
+            textAlign: align,
+          ),
+        );
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        cell(_wDay,   day),
+        SizedBox(width: _gap),
+        cell(_wDate,  date),
+        SizedBox(width: _gap),
+        cell(_wTime,  time),
+        SizedBox(width: _gap),
+        cell(_wSym,   symbol, style: st(size: isHeader ? fs : fs + 2, noStrike: true)),
+        SizedBox(width: _gap),
+        cell(_wLabel, label),
+        SizedBox(width: _gap),
+        cell(_wDelta, delta, style: st(c: dc, noStrike: true), align: TextAlign.right),
+      ],
+    );
   }
 }
 

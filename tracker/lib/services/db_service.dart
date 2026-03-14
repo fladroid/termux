@@ -183,4 +183,47 @@ class DbService {
     final db = await database;
     return await db.delete('log', where: 'deleted = 1');
   }
+  // ─── TEXT VALUES ──────────────────────────────────────────
+
+  // Dohvati sacuvani tekst za button na odredjeni datum
+  Future<String?> getTextValue(String buttonId, DateTime date) async {
+    final db  = await database;
+    final key = DailyValueModel.dateKey(date);
+    final res = await db.query('log',
+      where:     'button_id = ? AND type = ? AND timestamp LIKE ? AND deleted = 0',
+      whereArgs: [buttonId, 'text', '${key}%'],
+      orderBy:   'timestamp DESC',
+      limit:     1,
+    );
+    if (res.isEmpty) return null;
+    return LogEntryModel.fromMap(res.first).textValue;
+  }
+
+  // Sacuvaj tekst za button (zamijeni stari za taj dan)
+  Future<void> saveTextValue(String buttonId, DateTime date, String text) async {
+    final db  = await database;
+    final key = DailyValueModel.dateKey(date);
+    // Soft-delete stare text unose za taj dan
+    await db.update('log', {'deleted': 1},
+      where:     'button_id = ? AND type = ? AND timestamp LIKE ?',
+      whereArgs: [buttonId, 'text', '${key}%'],
+    );
+    // Dodaj novi
+    await addLog(type: 'text', buttonId: buttonId, textValue: text);
+  }
+
+  // Svi text values za datum
+  Future<Map<String, String>> getTextValuesForDate(DateTime date) async {
+    final db  = await database;
+    final key = DailyValueModel.dateKey(date);
+    final res = await db.rawQuery("""
+      SELECT button_id, text_value FROM log
+      WHERE type = 'text' AND timestamp LIKE ? AND deleted = 0
+      GROUP BY button_id
+      HAVING MAX(timestamp)
+    """, ['${key}%']);
+    return { for (var r in res)
+      r['button_id'] as String: r['text_value'] as String };
+  }
+
 }

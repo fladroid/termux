@@ -39,6 +39,17 @@
         "hr": "trokut"
       },
       "type": "counter"
+    },
+    {
+      "id": "btn_text",
+      "type": "text",
+      "symbol": "✎",
+      "label": {
+        "en": "note",
+        "sr-lat": "beleska",
+        "sr-cyr": "белешка",
+        "hr": "biljeska"
+      }
     }
   ],
   "translations": {
@@ -148,7 +159,9 @@
       "clean_title": "Clean database?",
       "clean_body": "This will permanently remove {count} deleted entries.",
       "clean_ok": "Clean",
-      "clean_done": "Removed {count} entries."
+      "clean_done": "Removed {count} entries.",
+      "text_hint": "Enter your note...",
+      "text_tap_to_edit": "tap to add note"
     },
     "sr-lat": {
       "today": "Danas",
@@ -256,7 +269,9 @@
       "clean_title": "Ocistiti bazu?",
       "clean_body": "Trajno ce biti uklonjeno {count} obrisanih unosa.",
       "clean_ok": "Ocisti",
-      "clean_done": "Uklonjeno {count} unosa."
+      "clean_done": "Uklonjeno {count} unosa.",
+      "text_hint": "Unesite beleski...",
+      "text_tap_to_edit": "kliknite za belesku"
     },
     "sr-cyr": {
       "today": "Данас",
@@ -364,7 +379,9 @@
       "clean_title": "Очистити базу?",
       "clean_body": "Трајно ће бити уклоњено {count} обрисаних уноса.",
       "clean_ok": "Очисти",
-      "clean_done": "Уклоњено {count} уноса."
+      "clean_done": "Уклоњено {count} уноса.",
+      "text_hint": "Унесите белешку...",
+      "text_tap_to_edit": "кликните за белешку"
     },
     "hr": {
       "today": "Danas",
@@ -472,7 +489,9 @@
       "clean_title": "Ocistiti bazu?",
       "clean_body": "Trajno ce biti uklonjeno {count} obrisanih unosa.",
       "clean_ok": "Ocisti",
-      "clean_done": "Uklonjeno {count} unosa."
+      "clean_done": "Uklonjeno {count} unosa.",
+      "text_hint": "Unesite biljesku...",
+      "text_tap_to_edit": "kliknite za biljesku"
     }
   },
   "languages": [
