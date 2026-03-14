@@ -15,15 +15,15 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  final _config  = ConfigService();
-  final _db      = DbService();
-  final _tr      = TranslationService();
-  final _theme   = AppTheme();
+  final _config = ConfigService();
+  final _db     = DbService();
+  final _tr     = TranslationService();
+  final _theme  = AppTheme();
 
   List<ButtonModel>   _buttons = [];
   List<LogEntryModel> _entries = [];
-  bool     _loading = true;
-  _Period  _period  = _Period.week;
+  bool    _loading = true;
+  _Period _period  = _Period.week;
   DateTime _rangeFrom = DateTime.now().subtract(const Duration(days: 7));
   DateTime _rangeTo   = DateTime.now();
 
@@ -50,7 +50,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       from: from, to: to,
       includeDeleted: _period == _Period.range,
     );
-
     setState(() { _buttons = buttons; _entries = entries; _loading = false; });
   }
 
@@ -83,23 +82,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   String _p(int n)             => n.toString().padLeft(2, '0');
-  String _fmtDate(DateTime dt) => '${_p(dt.day)}.${_p(dt.month)}.${dt.year.toString().substring(2)}';
+  String _fmtDate(DateTime dt) => '${_p(dt.day)}.${_p(dt.month)}.${dt.year}';
   String _fmtTime(DateTime dt) => '${_p(dt.hour)}:${_p(dt.minute)}';
   String _fmtDay(DateTime dt)  {
     final name = _tr.dayName(dt.weekday);
     return name.length >= 3 ? name.substring(0, 3) : name;
   }
-
-  // Kolone — točno definirane širine u pikselima
-  // Dan: 28, Datum: 52, Vrij: 38, Sim: 22, Labela: 70, +/-: 24
-  // Ukupno: 28+52+38+22+70+24 + razmaci(5x4=20) = 254px — stane na svaki ekran
-  static const double _wDay    = 28;
-  static const double _wDate   = 52;
-  static const double _wTime   = 38;
-  static const double _wSym    = 22;
-  static const double _wLabel  = 70;
-  static const double _wDelta  = 24;
-  static const double _gap     =  4;
 
   @override
   Widget build(BuildContext context) {
@@ -118,28 +106,31 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildTopBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+      padding: const EdgeInsets.fromLTRB(12, 18, 12, 12),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: _theme.border))),
-      child: Row(children: [
-        GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Text('‹', style: TextStyle(fontSize: 22, color: _theme.inkLight))),
-        const SizedBox(width: 12),
-        // Naslov lijevo poravnan
-        Text(_tr.t('history_title'), style: TextStyle(
-          fontFamily: 'monospace', fontSize: _theme.headerSize * 0.8,
-          fontWeight: FontWeight.w600, color: _theme.ink)),
-        const Spacer(),
-        if (_period == _Period.range)
-          Text('${_fmtDate(_rangeFrom)}–${_fmtDate(_rangeTo)}',
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Text('‹', style: TextStyle(fontSize: 22, color: _theme.inkLight))),
+          const SizedBox(width: 10),
+          // FIX: naslov lijevo
+          Text(_tr.t('history_title'), style: TextStyle(
+            fontFamily: 'monospace', fontSize: _theme.headerSize * 0.8,
+            fontWeight: FontWeight.w600, color: _theme.ink)),
+          const Spacer(),
+          if (_period == _Period.range)
+            Text('${_fmtDate(_rangeFrom)}–${_fmtDate(_rangeTo)}',
+              style: TextStyle(fontFamily: 'monospace',
+                fontSize: _theme.captionSize, color: _theme.inkLight)),
+          const SizedBox(width: 6),
+          Text('${_entries.length}',
             style: TextStyle(fontFamily: 'monospace',
-              fontSize: _theme.captionSize, color: _theme.inkLight)),
-        const SizedBox(width: 6),
-        Text('${_entries.length}',
-          style: TextStyle(fontFamily: 'monospace',
-            fontSize: _theme.captionSize, color: _theme.inkFaint)),
-      ]),
+              fontSize: _theme.captionSize, color: _theme.inkFaint)),
+        ],
+      ),
     );
   }
 
@@ -188,23 +179,51 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+  // FIX: širine kolona dovoljno velike da stane pun tekst
+  // Dan(30) + Datum(72) + Vrij(40) + Sim(22) + Delta(28) = 192 + razmaci
+  // Bilješka je poseban red ispod ako postoji
+  static const double _wDay   = 30;
+  static const double _wDate  = 72;  // dd.mm.yyyy = 10 znakova
+  static const double _wTime  = 40;  // hh:mm = 5 znakova
+  static const double _wSym   = 24;
+  static const double _wDelta = 32;
+  static const double _gap    =  6;
+
   Widget _buildTableHeader() {
     return Container(
       color: _theme.surface,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: const EdgeInsets.fromLTRB(12, 7, 12, 7),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: _theme.border, width: 1.5))),
-      child: _tableRow(
-        day:    _tr.t('col_day'),
-        date:   _tr.t('col_date'),
-        time:   _tr.t('col_time'),
-        symbol: _tr.t('col_symbol'),
-        label:  _tr.t('col_label'),
-        delta:  _tr.t('col_delta'),
-        isHeader: true,
-        deleted:  false,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _hCell(_wDay,   _tr.t('col_day')),
+          SizedBox(width: _gap),
+          _hCell(_wDate,  _tr.t('col_date')),
+          SizedBox(width: _gap),
+          _hCell(_wTime,  _tr.t('col_time')),
+          SizedBox(width: _gap),
+          _hCell(_wSym,   _tr.t('col_symbol')),
+          SizedBox(width: _gap),
+          Expanded(child: _hCell(0, _tr.t('col_label'))),
+          SizedBox(width: _gap),
+          _hCell(_wDelta, _tr.t('col_delta'), align: TextAlign.right),
+        ],
       ),
     );
+  }
+
+  Widget _hCell(double w, String text, {TextAlign align = TextAlign.left}) {
+    final widget = Text(text,
+      style: TextStyle(
+        fontFamily: 'monospace', fontSize: _theme.captionSize - 1,
+        fontWeight: FontWeight.w600, color: _theme.inkFaint),
+      softWrap: false,
+      overflow: TextOverflow.clip,
+      textAlign: align,
+    );
+    return w > 0 ? SizedBox(width: w, child: widget) : widget;
   }
 
   Widget _buildTable() {
@@ -219,82 +238,101 @@ class _HistoryScreenState extends State<HistoryScreen> {
         final e   = _entries[i];
         final btn = _buttonFor(e.buttonId);
         final dt  = e.dateTime;
+        final isText    = e.type == LogType.text;
+        final isDeleted = e.deleted;
+
         final deltaStr = e.delta != null
             ? (e.delta! > 0 ? '+${e.delta}' : '${e.delta}')
-            : (e.textValue != null ? '✎' : '');
+            : (isText ? '✎' : '');
+
+        final labelStr = isText
+            ? (btn?.getLabel(_tr.language) ?? e.buttonId ?? '')
+            : (e.type == LogType.settings
+                ? (e.textValue ?? 'settings')
+                : (btn?.getLabel(_tr.language) ?? e.buttonId ?? ''));
+
+        Color dc = _theme.inkMedium;
+        if (deltaStr.startsWith('+')) dc = _theme.positive;
+        if (deltaStr.startsWith('-')) dc = _theme.destructive;
+
+        final baseSt = TextStyle(
+          fontFamily:  'monospace',
+          fontSize:    _theme.captionSize,
+          color:       isDeleted ? _theme.inkFaint : _theme.inkMedium,
+          decoration:  isDeleted ? TextDecoration.lineThrough : TextDecoration.none,
+        );
 
         return Container(
           color: i % 2 == 0 ? _theme.surface : _theme.background,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: _tableRow(
-            day:    _fmtDay(dt),
-            date:   _fmtDate(dt),
-            time:   _fmtTime(dt),
-            symbol: btn?.symbol ?? (e.type == LogType.settings ? '⚙' : '?'),
-            label:  e.type == LogType.settings
-                ? (e.textValue ?? 'settings')
-                : (btn?.getLabel(_tr.language) ?? e.buttonId ?? ''),
-            delta:    deltaStr,
-            isHeader: false,
-            deleted:  e.deleted,
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Glavni red
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(width: _wDay,
+                    child: Text(_fmtDay(dt), style: baseSt,
+                      softWrap: false, overflow: TextOverflow.clip)),
+                  SizedBox(width: _gap),
+                  SizedBox(width: _wDate,
+                    child: Text(_fmtDate(dt), style: baseSt,
+                      softWrap: false, overflow: TextOverflow.clip)),
+                  SizedBox(width: _gap),
+                  SizedBox(width: _wTime,
+                    child: Text(_fmtTime(dt), style: baseSt,
+                      softWrap: false, overflow: TextOverflow.clip)),
+                  SizedBox(width: _gap),
+                  SizedBox(width: _wSym,
+                    child: Text(
+                      btn?.symbol ?? (e.type == LogType.settings ? '⚙' : '?'),
+                      style: baseSt.copyWith(
+                        fontSize: _theme.captionSize + 2,
+                        decoration: TextDecoration.none),
+                      softWrap: false)),
+                  SizedBox(width: _gap),
+                  Expanded(child: Text(labelStr, style: baseSt,
+                    softWrap: false, overflow: TextOverflow.ellipsis)),
+                  SizedBox(width: _gap),
+                  SizedBox(width: _wDelta,
+                    child: Text(deltaStr,
+                      style: baseSt.copyWith(
+                        color: dc, decoration: TextDecoration.none),
+                      textAlign: TextAlign.right,
+                      softWrap: false)),
+                ],
+              ),
+
+              // FIX: sadržaj bilješke u zasebnom redu ispod
+              if (isText && e.textValue != null && e.textValue!.isNotEmpty)
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: 4,
+                    left: _wDay + _wDate + _wTime + _wSym + _gap * 3,
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _theme.accent.withOpacity(0.07),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: _theme.accent.withOpacity(0.2)),
+                    ),
+                    child: Text(
+                      e.textValue!,
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: _theme.captionSize,
+                        color: _theme.inkMedium,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         );
       },
-    );
-  }
-
-  Widget _tableRow({
-    required String day, date, time, symbol, label, delta,
-    required bool isHeader, required bool deleted,
-  }) {
-    final fs  = isHeader ? _theme.captionSize - 1 : _theme.captionSize;
-    final col = isHeader ? _theme.inkFaint
-        : deleted ? _theme.inkFaint : _theme.inkMedium;
-    final deco = deleted && !isHeader
-        ? TextDecoration.lineThrough : TextDecoration.none;
-
-    // Sve kolone lijevo poravnane, fiksnih širina, bez prelamanja
-    TextStyle st({Color? c, double? size, bool noStrike = false}) => TextStyle(
-      fontFamily:  'monospace',
-      fontSize:    size ?? fs,
-      fontWeight:  isHeader ? FontWeight.w600 : FontWeight.normal,
-      color:       c ?? col,
-      decoration:  noStrike ? TextDecoration.none : deco,
-    );
-
-    Color dc = col;
-    if (!isHeader) {
-      if (delta.startsWith('+')) dc = _theme.positive;
-      if (delta.startsWith('-')) dc = _theme.destructive;
-    }
-
-    Widget cell(double w, String text, {TextStyle? style, TextAlign align = TextAlign.left}) =>
-        SizedBox(
-          width: w,
-          child: Text(text,
-            style: style ?? st(),
-            overflow: TextOverflow.clip,
-            softWrap: false,      // NIKAD ne prelama u novi red
-            textAlign: align,
-          ),
-        );
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        cell(_wDay,   day),
-        SizedBox(width: _gap),
-        cell(_wDate,  date),
-        SizedBox(width: _gap),
-        cell(_wTime,  time),
-        SizedBox(width: _gap),
-        cell(_wSym,   symbol, style: st(size: isHeader ? fs : fs + 2, noStrike: true)),
-        SizedBox(width: _gap),
-        cell(_wLabel, label),
-        SizedBox(width: _gap),
-        cell(_wDelta, delta, style: st(c: dc, noStrike: true), align: TextAlign.right),
-      ],
     );
   }
 }
