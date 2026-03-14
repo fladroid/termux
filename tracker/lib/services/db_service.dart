@@ -122,4 +122,16 @@ class DbService {
     final maps = await db.query('entries', orderBy: 'timestamp ASC');
     return maps.map((m) => EntryModel.fromMap(m)).toList();
   }
+
+  // Svi unosi u rasponu — ukljucujuci deleted (za custom raspon u historiji)
+  Future<List<EntryModel>> getAllInRange(DateTime from, DateTime to) async {
+    final db = await database;
+    final maps = await db.query(
+      'entries',
+      where: 'timestamp BETWEEN ? AND ?',
+      whereArgs: [from.toIso8601String(), to.toIso8601String()],
+      orderBy: 'timestamp DESC',
+    );
+    return maps.map((m) => EntryModel.fromMap(m)).toList();
+  }
 }

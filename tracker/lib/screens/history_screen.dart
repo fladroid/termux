@@ -21,9 +21,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
   final _theme = AppTheme();
 
   List<ButtonModel> _buttons = [];
-  Map<String, List<EntryModel>> _grouped = {};
+  List<EntryModel> _entries = [];
   bool _loading = true;
   _Period _period = _Period.week;
+
+  // Custom raspon
+  DateTime _rangeFrom = DateTime.now().subtract(const Duration(days: 7));
+  DateTime _rangeTo   = DateTime.now();
 
   @override
   void initState() {
@@ -34,54 +38,66 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final buttons = await _config.loadButtons();
-    final now = DateTime.now();
-    final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
-    final entries = await _db.getEntriesForRange(_periodStart(), endOfToday);
-    final grouped = <String, List<EntryModel>>{};
-    for (final e in entries.reversed) {
-      grouped.putIfAbsent(_dateKey(e.timestamp), () => []).add(e);
+
+    List<EntryModel> entries;
+    if (_period == _Period.range) {
+      // Raspon — sve uključujući budućnost i deleted
+      final from = DateTime(_rangeFrom.year, _rangeFrom.month, _rangeFrom.day);
+      final to   = DateTime(_rangeTo.year, _rangeTo.month, _rangeTo.day, 23, 59, 59);
+      entries = await _db.getAllInRange(from, to);
+    } else {
+      // 7 ili 30 dana — samo prošlost+danas, samo aktivni
+      final now = DateTime.now();
+      final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      final from = now.subtract(Duration(days: _period == _Period.week ? 7 : 30));
+      entries = await _db.getEntriesForRange(from, endOfToday);
     }
+
     setState(() {
       _buttons = buttons;
-      _grouped = grouped;
+      _entries = entries;
       _loading = false;
     });
   }
 
-  DateTime _periodStart() {
+  Future<void> _pickRange() async {
     final now = DateTime.now();
-    switch (_period) {
-      case _Period.week:  return now.subtract(const Duration(days: 7));
-      case _Period.month: return DateTime(now.year, now.month - 1, now.day);
-      case _Period.year:  return DateTime(now.year - 1, now.month, now.day);
-    }
+
+    final from = await showDatePicker(
+      context: context,
+      initialDate: _rangeFrom,
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 2),
+      helpText: _tr.t('range_from'),
+    );
+    if (from == null || !mounted) return;
+
+    final to = await showDatePicker(
+      context: context,
+      initialDate: _rangeTo.isBefore(from) ? from : _rangeTo,
+      firstDate: from,
+      lastDate: DateTime(now.year + 2),
+      helpText: _tr.t('range_to'),
+    );
+    if (to == null || !mounted) return;
+
+    setState(() {
+      _rangeFrom = from;
+      _rangeTo   = to;
+      _period    = _Period.range;
+    });
+    _load();
   }
-
-  String _dateKey(DateTime dt) => '${dt.year}-${_pad(dt.month)}-${_pad(dt.day)}';
-  String _pad(int n) => n.toString().padLeft(2, '0');
-  String _formatTime(DateTime dt) => '${_pad(dt.hour)}:${_pad(dt.minute)}';
-
-  // Format datuma za listing: "Subota, 14. mart 2026."
-  String _formatFullDate(DateTime dt) => _tr.formatDate(dt);
 
   ButtonModel? _buttonFor(String id) {
     try { return _buttons.firstWhere((b) => b.id == id); }
     catch (_) { return null; }
   }
 
-  Map<String, int> _countsByButton(List<EntryModel> entries) {
-    final counts = <String, int>{};
-    for (final e in entries) {
-      counts[e.buttonId] = (counts[e.buttonId] ?? 0) + 1;
-    }
-    return counts;
-  }
-
-  // Parsira dateKey nazad u DateTime
-  DateTime _parseKey(String key) {
-    final parts = key.split('-');
-    return DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
-  }
+  String _pad(int n) => n.toString().padLeft(2, '0');
+  String _fmtDate(DateTime dt) => '${_pad(dt.day)}.${_pad(dt.month)}.${dt.year.toString().substring(2)}';
+  String _fmtTime(DateTime dt) => '${_pad(dt.hour)}:${_pad(dt.minute)}';
+  String _fmtDay(DateTime dt)  => _tr.dayName(dt.weekday).substring(0, 3);
 
   @override
   Widget build(BuildContext context) {
@@ -92,9 +108,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
           children: [
             _buildTopBar(),
             _buildPeriodSelector(),
+            _buildTableHeader(),
             _loading
                 ? const Expanded(child: Center(child: CircularProgressIndicator()))
-                : Expanded(child: _buildContent()),
+                : Expanded(child: _buildTable()),
           ],
         ),
       ),
@@ -114,8 +131,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
         const SizedBox(width: 16),
         Text(_tr.t('history_title'), style: TextStyle(
-          fontFamily: 'monospace', fontSize: _theme.headerSize * 0.8,
-          fontWeight: FontWeight.w600, color: _theme.ink)),
+          fontFamily: 'monospace',
+          fontSize: _theme.headerSize * 0.8,
+          fontWeight: FontWeight.w600,
+          color: _theme.ink,
+        )),
+        const Spacer(),
+        // Prikaz odabranog raspona kad je aktivan
+        if (_period == _Period.range)
+          Text(
+            '${_fmtDate(_rangeFrom)} – ${_fmtDate(_rangeTo)}',
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: _theme.captionSize,
+              color: _theme.inkLight,
+            ),
+          ),
       ]),
     );
   }
@@ -126,112 +157,159 @@ class _HistoryScreenState extends State<HistoryScreen> {
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: _theme.border)),
       ),
-      child: Row(
-        children: _Period.values.map((p) {
-          final selected = _period == p;
-          return GestureDetector(
-            onTap: () { setState(() => _period = p); _load(); },
-            child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: selected ? _theme.accent : _theme.surface,
-                border: Border.all(
-                  color: selected ? _theme.accent : _theme.border),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(p.label(_tr), style: TextStyle(
-                fontFamily: 'monospace', fontSize: _theme.captionSize,
-                color: selected ? _theme.accentText : _theme.inkLight)),
+      child: Row(children: [
+        _periodBtn(_Period.week,  _tr.t('period_7')),
+        const SizedBox(width: 8),
+        _periodBtn(_Period.month, _tr.t('period_30')),
+        const SizedBox(width: 8),
+        // Raspon — otvara date picker
+        GestureDetector(
+          onTap: _pickRange,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: _period == _Period.range ? _theme.accent : _theme.surface,
+              border: Border.all(
+                color: _period == _Period.range ? _theme.accent : _theme.border),
+              borderRadius: BorderRadius.circular(4),
             ),
-          );
-        }).toList(),
+            child: Text(_tr.t('period_range'), style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: _theme.captionSize,
+              color: _period == _Period.range ? _theme.accentText : _theme.inkLight,
+            )),
+          ),
+        ),
+        const Spacer(),
+        // Broj redova
+        Text(
+          '${_entries.length} ${_tr.t(_entries.length == 1 ? "entry" : "entries")}',
+          style: TextStyle(
+            fontFamily: 'monospace',
+            fontSize: _theme.captionSize,
+            color: _theme.inkFaint,
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _periodBtn(_Period p, String label) {
+    final selected = _period == p;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _period = p);
+        _load();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? _theme.accent : _theme.surface,
+          border: Border.all(color: selected ? _theme.accent : _theme.border),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(label, style: TextStyle(
+          fontFamily: 'monospace',
+          fontSize: _theme.captionSize,
+          color: selected ? _theme.accentText : _theme.inkLight,
+        )),
       ),
     );
   }
 
-  Widget _buildContent() {
-    if (_grouped.isEmpty) {
+  // Fiksni header tabele
+  Widget _buildTableHeader() {
+    return Container(
+      color: _theme.surface,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: _theme.border, width: 1.5)),
+      ),
+      child: _tableRow(
+        day:    _tr.t('col_day'),
+        date:   _tr.t('col_date'),
+        time:   _tr.t('col_time'),
+        symbol: _tr.t('col_symbol'),
+        label:  _tr.t('col_label'),
+        status: _tr.t('col_status'),
+        isHeader: true,
+        deleted: false,
+      ),
+    );
+  }
+
+  Widget _buildTable() {
+    if (_entries.isEmpty) {
       return Center(child: Text(_tr.t('no_entries_period'),
         style: TextStyle(fontFamily: 'monospace',
           fontSize: _theme.captionSize, color: _theme.inkFaint)));
     }
+
     return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: _grouped.length,
+      itemCount: _entries.length,
       itemBuilder: (ctx, i) {
-        final dateKey = _grouped.keys.elementAt(i);
-        return _buildDayCard(dateKey, _grouped[dateKey]!);
+        final e = _entries[i];
+        final btn = _buttonFor(e.buttonId);
+        final isEven = i % 2 == 0;
+
+        return Container(
+          color: isEven ? _theme.surface : _theme.background,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          child: _tableRow(
+            day:    _fmtDay(e.timestamp),
+            date:   _fmtDate(e.timestamp),
+            time:   _fmtTime(e.timestamp),
+            symbol: btn?.symbol ?? '?',
+            label:  btn?.getLabel(_tr.language) ?? e.buttonId,
+            status: e.deleted ? _tr.t('status_deleted') : _tr.t('status_active'),
+            deleted: e.deleted,
+            isHeader: false,
+          ),
+        );
       },
     );
   }
 
-  Widget _buildDayCard(String dateKey, List<EntryModel> entries) {
-    final counts = _countsByButton(entries);
-    final dt = _parseKey(dateKey);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: _theme.surface,
-        border: Border.all(color: _theme.border),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(_formatFullDate(dt), style: TextStyle(
-                fontFamily: 'monospace', fontSize: _theme.captionSize,
-                fontWeight: FontWeight.w600, color: _theme.ink)),
-              Row(children: counts.entries.map((e) {
-                final btn = _buttonFor(e.key);
-                return Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Text('${btn?.symbol ?? '?'} ${e.value}',
-                    style: TextStyle(fontFamily: 'monospace',
-                      fontSize: _theme.captionSize, color: _theme.inkLight)),
-                );
-              }).toList()),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Divider(color: _theme.border, height: 1),
-          const SizedBox(height: 10),
-          ...entries.map((e) {
-            final btn = _buttonFor(e.buttonId);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: Row(children: [
-                Text(_formatTime(e.timestamp), style: TextStyle(
-                  fontFamily: 'monospace', fontSize: _theme.captionSize,
-                  color: _theme.inkLight)),
-                const SizedBox(width: 12),
-                Text(btn?.symbol ?? '?', style: TextStyle(
-                  fontSize: _theme.symbolSize * 0.5, color: _theme.ink)),
-                const SizedBox(width: 8),
-                Text(btn?.getLabel(_tr.language) ?? e.buttonId,
-                  style: TextStyle(fontFamily: 'monospace',
-                    fontSize: _theme.captionSize, color: _theme.inkLight)),
-              ]),
-            );
-          }),
-        ],
-      ),
+  Widget _tableRow({
+    required String day,
+    required String date,
+    required String time,
+    required String symbol,
+    required String label,
+    required String status,
+    required bool deleted,
+    required bool isHeader,
+  }) {
+    final style = TextStyle(
+      fontFamily: 'monospace',
+      fontSize: isHeader ? _theme.captionSize - 1 : _theme.captionSize,
+      fontWeight: isHeader ? FontWeight.w600 : FontWeight.normal,
+      color: isHeader
+          ? _theme.inkFaint
+          : deleted ? _theme.inkFaint : _theme.inkMedium,
+      decoration: deleted && !isHeader
+          ? TextDecoration.lineThrough
+          : TextDecoration.none,
     );
+
+    final statusColor = isHeader
+        ? _theme.inkFaint
+        : deleted
+            ? const Color(0xFF8B2020)
+            : const Color(0xFF2D5A27);
+
+    return Row(children: [
+      SizedBox(width: 34, child: Text(day,    style: style, overflow: TextOverflow.clip)),
+      SizedBox(width: 62, child: Text(date,   style: style, overflow: TextOverflow.clip)),
+      SizedBox(width: 44, child: Text(time,   style: style, overflow: TextOverflow.clip)),
+      SizedBox(width: 28, child: Text(symbol, style: isHeader ? style : style.copyWith(
+        fontSize: _theme.captionSize + 2, decoration: TextDecoration.none))),
+      Expanded(           child: Text(label,  style: style, overflow: TextOverflow.ellipsis)),
+      SizedBox(width: 20, child: Text(status,
+        style: style.copyWith(color: statusColor, decoration: TextDecoration.none),
+        textAlign: TextAlign.center)),
+    ]);
   }
 }
 
-enum _Period {
-  week, month, year;
-  String label(TranslationService tr) {
-    switch (this) {
-      case _Period.week:  return tr.t('period_7');
-      case _Period.month: return tr.t('period_30');
-      case _Period.year:  return tr.t('period_365');
-    }
-  }
-}
+enum _Period { week, month, range }

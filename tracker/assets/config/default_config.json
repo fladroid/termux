@@ -120,7 +120,19 @@
       "exit_title": "Exit app?",
       "exit_body": "Do you want to exit the app?",
       "exit_cancel": "Cancel",
-      "exit_ok": "Exit"
+      "exit_ok": "Exit",
+      "period_range": "Range",
+      "range_from": "From",
+      "range_to": "To",
+      "range_apply": "Apply",
+      "col_day": "Day",
+      "col_date": "Date",
+      "col_time": "Time",
+      "col_symbol": "Sym",
+      "col_label": "Label",
+      "col_status": "St",
+      "status_active": "✓",
+      "status_deleted": "✗"
     },
     "sr-lat": {
       "today": "Danas",
@@ -203,7 +215,19 @@
       "exit_title": "Izaci iz aplikacije?",
       "exit_body": "Da li zelite da izadjete iz aplikacije?",
       "exit_cancel": "Otkazi",
-      "exit_ok": "Izadji"
+      "exit_ok": "Izadji",
+      "period_range": "Raspon",
+      "range_from": "Od",
+      "range_to": "Do",
+      "range_apply": "Primeni",
+      "col_day": "Dan",
+      "col_date": "Datum",
+      "col_time": "Vreme",
+      "col_symbol": "Sim",
+      "col_label": "Labela",
+      "col_status": "St",
+      "status_active": "✓",
+      "status_deleted": "✗"
     },
     "sr-cyr": {
       "today": "Данас",
@@ -286,7 +310,19 @@
       "exit_title": "Изаћи из апликације?",
       "exit_body": "Да ли желите да изађете из апликације?",
       "exit_cancel": "Откажи",
-      "exit_ok": "Изађи"
+      "exit_ok": "Изађи",
+      "period_range": "Распон",
+      "range_from": "Од",
+      "range_to": "До",
+      "range_apply": "Примени",
+      "col_day": "Дан",
+      "col_date": "Датум",
+      "col_time": "Време",
+      "col_symbol": "Сим",
+      "col_label": "Лабела",
+      "col_status": "Ст",
+      "status_active": "✓",
+      "status_deleted": "✗"
     },
     "hr": {
       "today": "Danas",
@@ -369,7 +405,19 @@
       "exit_title": "Izaci iz aplikacije?",
       "exit_body": "Zelite li izaci iz aplikacije?",
       "exit_cancel": "Odustani",
-      "exit_ok": "Izadji"
+      "exit_ok": "Izadji",
+      "period_range": "Raspon",
+      "range_from": "Od",
+      "range_to": "Do",
+      "range_apply": "Primijeni",
+      "col_day": "Dan",
+      "col_date": "Datum",
+      "col_time": "Vrijeme",
+      "col_symbol": "Sim",
+      "col_label": "Oznaka",
+      "col_status": "St",
+      "status_active": "✓",
+      "status_deleted": "✗"
     }
   },
   "languages": [
