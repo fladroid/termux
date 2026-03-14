@@ -1,6 +1,7 @@
 // lib/screens/home_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/button_model.dart';
 import '../models/entry_model.dart';
 import '../services/config_service.dart';
@@ -27,7 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _loading = true;
 
-  // Pamtimo za koje datume smo već pokazali warning u ovoj sesiji
   final Set<String> _warnedDates = {};
 
   @override
@@ -56,20 +56,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _dateKey(DateTime dt) => '${dt.year}-${dt.month}-${dt.day}';
 
+  // Vraca true ako je dozvoljeno nastaviti s klikom
   Future<bool> _checkDateWarning(DateTime dt) async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final selected = DateTime(dt.year, dt.month, dt.day);
     final diff = selected.difference(today).inDays;
 
-    if (diff == 0) return true; // Danas — nema warning
+    if (diff == 0) return true;
 
     final key = _dateKey(dt);
-    if (_warnedDates.contains(key)) return true; // Već upozoren
+    if (_warnedDates.contains(key)) return true;
 
     final isPast = diff < 0;
     final title = isPast ? _tr.t('past_warning_title') : _tr.t('future_warning_title');
-    final body = isPast ? _tr.t('past_warning_body') : _tr.t('future_warning_body');
+    final body  = isPast ? _tr.t('past_warning_body')  : _tr.t('future_warning_body');
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -99,7 +100,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _handleTap(ButtonModel button) async {
     final allowed = await _checkDateWarning(_selectedDate);
     if (!allowed) return;
-    await _db.insert(button.id);
+
+    // FIX: insert s ispravnim datumom (ne nužno danas)
+    final now = DateTime.now();
+    final selected = _selectedDate;
+    final timestamp = DateTime(
+      selected.year, selected.month, selected.day,
+      now.hour, now.minute, now.second,
+    );
+    await _db.insertAt(button.id, timestamp);
     final entries = await _db.getEntriesForDate(_selectedDate);
     setState(() => _todayEntries = entries);
   }
@@ -114,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
         content: Text('${button.symbol} — ${_formatTime(last.timestamp)}'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(_tr.t('undo_no'))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(_tr.t('undo_yes'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),  child: Text(_tr.t('undo_yes'))),
         ],
       ),
     );
@@ -141,32 +150,64 @@ class _HomeScreenState extends State<HomeScreen> {
   String _formatTime(DateTime dt) => '${_pad(dt.hour)}:${_pad(dt.minute)}';
   String _pad(int n) => n.toString().padLeft(2, '0');
 
+  // FIX: subtitle za Danas/Jucer/Sutra uvijek prikazuje puni datum
+  String _headerMain(DateTime dt) => _tr.formatHeaderMain(dt);
+  String _headerSub(DateTime dt)  => _tr.formatDate(dt);
+
+  // FIX: subtitle prikazujemo za Danas, Jucer i Sutra
+  bool _showSub(DateTime dt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selected = DateTime(dt.year, dt.month, dt.day);
+    final diff = selected.difference(today).inDays;
+    return diff >= -1 && diff <= 1;
+  }
+
+  Future<bool> _onWillPop() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(_tr.t('exit_title')),
+        content: Text(_tr.t('exit_body')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(_tr.t('exit_cancel')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(_tr.t('exit_ok')),
+          ),
+        ],
+      ),
+    );
+    return confirm ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _theme.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildTopBar(),
-            Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _buildContent(),
-            ),
-            _buildBottomBar(),
-          ],
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: _theme.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildTopBar(),
+              Expanded(
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _buildContent(),
+              ),
+              _buildBottomBar(),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildTopBar() {
-    final mainLabel = _tr.formatHeaderMain(_selectedDate);
-    final isRelative = _isToday(_selectedDate) ||
-        _selectedDate.difference(DateTime.now()).inDays.abs() == 1;
-    final subLabel = isRelative ? _tr.formatHeaderSub(_selectedDate) : null;
-
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
       decoration: BoxDecoration(
@@ -178,15 +219,16 @@ class _HomeScreenState extends State<HomeScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(mainLabel, style: TextStyle(
+              Text(_headerMain(_selectedDate), style: TextStyle(
                 fontFamily: 'monospace',
                 fontSize: _theme.headerSize,
                 fontWeight: FontWeight.w600,
                 letterSpacing: -0.5,
                 color: _theme.ink,
               )),
-              if (subLabel != null)
-                Text(subLabel, style: TextStyle(
+              // FIX: datum ispod za Danas, Jucer i Sutra
+              if (_showSub(_selectedDate))
+                Text(_headerSub(_selectedDate), style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: _theme.captionSize,
                   color: _theme.inkLight,
@@ -201,12 +243,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+          // FIX: samo navigacija gore, bez dupliranog settings gumba
           Row(children: [
             _navButton('‹', () => _changeDate(-1)),
             const SizedBox(width: 8),
             _navButton('›', () => _changeDate(1)),
-            const SizedBox(width: 8),
-            _navButton('⚙', () => Navigator.pushNamed(context, '/settings').then((_) => _load())),
           ]),
         ],
       ),
@@ -269,9 +310,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildLog() {
     if (_todayEntries.isEmpty) {
-      return Text(_tr.t('no_entries'),
-        style: TextStyle(fontFamily: 'monospace',
-          fontSize: _theme.captionSize, color: _theme.inkFaint));
+      return Text(_tr.t('no_entries'), style: TextStyle(
+        fontFamily: 'monospace', fontSize: _theme.captionSize,
+        color: _theme.inkFaint));
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

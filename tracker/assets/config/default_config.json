@@ -43,8 +43,29 @@
       "today": "Today",
       "yesterday": "Yesterday",
       "tomorrow": "Tomorrow",
-      "days": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
-      "months": ["January","February","March","April","May","June","July","August","September","October","November","December"],
+      "days": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday"
+      ],
+      "months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
       "entries": "entries",
       "entry": "entry",
       "log": "LOG",
@@ -95,14 +116,39 @@
       "import_success": "Imported {imported}, skipped {skipped}",
       "import_error": "Error: {error}",
       "imported": "Imported",
-      "skipped": "skipped"
+      "skipped": "skipped",
+      "exit_title": "Exit app?",
+      "exit_body": "Do you want to exit the app?",
+      "exit_cancel": "Cancel",
+      "exit_ok": "Exit"
     },
     "sr-lat": {
       "today": "Danas",
       "yesterday": "Jucer",
       "tomorrow": "Sutra",
-      "days": ["Ponedeljak","Utorak","Sreda","Cetvrtak","Petak","Subota","Nedelja"],
-      "months": ["januar","februar","mart","april","maj","jun","jul","avgust","septembar","oktobar","novembar","decembar"],
+      "days": [
+        "Ponedeljak",
+        "Utorak",
+        "Sreda",
+        "Cetvrtak",
+        "Petak",
+        "Subota",
+        "Nedelja"
+      ],
+      "months": [
+        "januar",
+        "februar",
+        "mart",
+        "april",
+        "maj",
+        "jun",
+        "jul",
+        "avgust",
+        "septembar",
+        "oktobar",
+        "novembar",
+        "decembar"
+      ],
       "entries": "unosa",
       "entry": "unos",
       "log": "DNEVNIK",
@@ -153,14 +199,39 @@
       "import_success": "Uvezeno {imported}, preskoceno {skipped}",
       "import_error": "Greska: {error}",
       "imported": "Uvezeno",
-      "skipped": "preskoceno"
+      "skipped": "preskoceno",
+      "exit_title": "Izaci iz aplikacije?",
+      "exit_body": "Da li zelite da izadjete iz aplikacije?",
+      "exit_cancel": "Otkazi",
+      "exit_ok": "Izadji"
     },
     "sr-cyr": {
       "today": "Данас",
       "yesterday": "Јуче",
       "tomorrow": "Сутра",
-      "days": ["Понедељак","Уторак","Среда","Четвртак","Петак","Субота","Недеља"],
-      "months": ["јануар","фебруар","март","април","мај","јун","јул","август","септембар","октобар","новембар","децембар"],
+      "days": [
+        "Понедељак",
+        "Уторак",
+        "Среда",
+        "Четвртак",
+        "Петак",
+        "Субота",
+        "Недеља"
+      ],
+      "months": [
+        "јануар",
+        "фебруар",
+        "март",
+        "април",
+        "мај",
+        "јун",
+        "јул",
+        "август",
+        "септембар",
+        "октобар",
+        "новембар",
+        "децембар"
+      ],
       "entries": "уноса",
       "entry": "унос",
       "log": "ДНЕВНИК",
@@ -211,14 +282,39 @@
       "import_success": "Увезено {imported}, прескочено {skipped}",
       "import_error": "Грешка: {error}",
       "imported": "Увезено",
-      "skipped": "прескочено"
+      "skipped": "прескочено",
+      "exit_title": "Изаћи из апликације?",
+      "exit_body": "Да ли желите да изађете из апликације?",
+      "exit_cancel": "Откажи",
+      "exit_ok": "Изађи"
     },
     "hr": {
       "today": "Danas",
       "yesterday": "Jucer",
       "tomorrow": "Sutra",
-      "days": ["Ponedjeljak","Utorak","Srijeda","Cetvrtak","Petak","Subota","Nedjelja"],
-      "months": ["sijenja","veljace","ozujka","travnja","svibnja","lipnja","srpnja","kolovoza","rujna","listopada","studenoga","prosinca"],
+      "days": [
+        "Ponedjeljak",
+        "Utorak",
+        "Srijeda",
+        "Cetvrtak",
+        "Petak",
+        "Subota",
+        "Nedjelja"
+      ],
+      "months": [
+        "sijenja",
+        "veljace",
+        "ozujka",
+        "travnja",
+        "svibnja",
+        "lipnja",
+        "srpnja",
+        "kolovoza",
+        "rujna",
+        "listopada",
+        "studenoga",
+        "prosinca"
+      ],
       "entries": "unosa",
       "entry": "unos",
       "log": "DNEVNIK",
@@ -269,13 +365,29 @@
       "import_success": "Uvezeno {imported}, preskoceno {skipped}",
       "import_error": "Greska: {error}",
       "imported": "Uvezeno",
-      "skipped": "preskoceno"
+      "skipped": "preskoceno",
+      "exit_title": "Izaci iz aplikacije?",
+      "exit_body": "Zelite li izaci iz aplikacije?",
+      "exit_cancel": "Odustani",
+      "exit_ok": "Izadji"
     }
   },
   "languages": [
-    {"code": "en",     "label": "English"},
-    {"code": "sr-lat", "label": "Srpski (latinica)"},
-    {"code": "sr-cyr", "label": "Српски (ћирилица)"},
-    {"code": "hr",     "label": "Hrvatski"}
+    {
+      "code": "en",
+      "label": "English"
+    },
+    {
+      "code": "sr-lat",
+      "label": "Srpski (latinica)"
+    },
+    {
+      "code": "sr-cyr",
+      "label": "Српски (ћирилица)"
+    },
+    {
+      "code": "hr",
+      "label": "Hrvatski"
+    }
   ]
 }

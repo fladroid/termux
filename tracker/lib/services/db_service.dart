@@ -35,6 +35,16 @@ class DbService {
     );
   }
 
+  Future<EntryModel> insertAt(String buttonId, DateTime timestamp) async {
+    final entry = EntryModel(
+      buttonId: buttonId,
+      timestamp: timestamp,
+    );
+    final db = await database;
+    final id = await db.insert('entries', entry.toMap());
+    return entry.copyWith(id: id);
+  }
+
   Future<EntryModel> insert(String buttonId) async {
     final entry = EntryModel(
       buttonId: buttonId,
