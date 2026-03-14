@@ -15,7 +15,8 @@
         "sr-lat": "zvezdica",
         "sr-cyr": "звездица",
         "hr": "zvjezdica"
-      }
+      },
+      "type": "counter"
     },
     {
       "id": "btn_2",
@@ -25,7 +26,8 @@
         "sr-lat": "tackica",
         "sr-cyr": "тачкица",
         "hr": "točkica"
-      }
+      },
+      "type": "counter"
     },
     {
       "id": "btn_3",
@@ -35,7 +37,8 @@
         "sr-lat": "trougao",
         "sr-cyr": "троугао",
         "hr": "trokut"
-      }
+      },
+      "type": "counter"
     }
   ],
   "translations": {
@@ -132,7 +135,20 @@
       "col_label": "Label",
       "col_status": "St",
       "status_active": "✓",
-      "status_deleted": "✗"
+      "status_deleted": "✗",
+      "nav_report": "Report",
+      "report_title": "Cumulative Report",
+      "col_delta": "+/−",
+      "settings_db": "Database",
+      "db_total_log": "Total log entries",
+      "db_active_log": "Active entries",
+      "db_deleted_log": "Deleted entries",
+      "db_daily_values": "Daily values",
+      "clean_btn": "Clean deleted entries",
+      "clean_title": "Clean database?",
+      "clean_body": "This will permanently remove {count} deleted entries.",
+      "clean_ok": "Clean",
+      "clean_done": "Removed {count} entries."
     },
     "sr-lat": {
       "today": "Danas",
@@ -227,7 +243,20 @@
       "col_label": "Labela",
       "col_status": "St",
       "status_active": "✓",
-      "status_deleted": "✗"
+      "status_deleted": "✗",
+      "nav_report": "Izvestaj",
+      "report_title": "Kumulativni izvestaj",
+      "col_delta": "+/−",
+      "settings_db": "Baza podataka",
+      "db_total_log": "Ukupno unosa",
+      "db_active_log": "Aktivnih unosa",
+      "db_deleted_log": "Obrisanih unosa",
+      "db_daily_values": "Dnevnih vrednosti",
+      "clean_btn": "Ocisti obrisane unose",
+      "clean_title": "Ocistiti bazu?",
+      "clean_body": "Trajno ce biti uklonjeno {count} obrisanih unosa.",
+      "clean_ok": "Ocisti",
+      "clean_done": "Uklonjeno {count} unosa."
     },
     "sr-cyr": {
       "today": "Данас",
@@ -322,7 +351,20 @@
       "col_label": "Лабела",
       "col_status": "Ст",
       "status_active": "✓",
-      "status_deleted": "✗"
+      "status_deleted": "✗",
+      "nav_report": "Извештај",
+      "report_title": "Кумулативни извештај",
+      "col_delta": "+/−",
+      "settings_db": "База података",
+      "db_total_log": "Укупно уноса",
+      "db_active_log": "Активних уноса",
+      "db_deleted_log": "Обрисаних уноса",
+      "db_daily_values": "Дневних вредности",
+      "clean_btn": "Очисти обрисане уносе",
+      "clean_title": "Очистити базу?",
+      "clean_body": "Трајно ће бити уклоњено {count} обрисаних уноса.",
+      "clean_ok": "Очисти",
+      "clean_done": "Уклоњено {count} уноса."
     },
     "hr": {
       "today": "Danas",
@@ -417,7 +459,20 @@
       "col_label": "Oznaka",
       "col_status": "St",
       "status_active": "✓",
-      "status_deleted": "✗"
+      "status_deleted": "✗",
+      "nav_report": "Izvjestaj",
+      "report_title": "Kumulativni izvjestaj",
+      "col_delta": "+/−",
+      "settings_db": "Baza podataka",
+      "db_total_log": "Ukupno unosa",
+      "db_active_log": "Aktivnih unosa",
+      "db_deleted_log": "Obrisanih unosa",
+      "db_daily_values": "Dnevnih vrijednosti",
+      "clean_btn": "Ocisti obrisane unose",
+      "clean_title": "Ocistiti bazu?",
+      "clean_body": "Trajno ce biti uklonjeno {count} obrisanih unosa.",
+      "clean_ok": "Ocisti",
+      "clean_done": "Uklonjeno {count} unosa."
     }
   },
   "languages": [
