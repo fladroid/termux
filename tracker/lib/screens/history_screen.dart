@@ -34,7 +34,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final buttons = await _config.loadButtons();
-    final entries = await _db.getEntriesForRange(_periodStart(), DateTime.now());
+    final now = DateTime.now();
+    final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    final entries = await _db.getEntriesForRange(_periodStart(), endOfToday);
     final grouped = <String, List<EntryModel>>{};
     for (final e in entries.reversed) {
       grouped.putIfAbsent(_dateKey(e.timestamp), () => []).add(e);
