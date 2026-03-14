@@ -39,6 +39,7 @@ class _CounterButtonState extends State<CounterButton> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeInOut,
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       decoration: BoxDecoration(
         color:  bgColor,
         border: Border.all(
@@ -47,38 +48,45 @@ class _CounterButtonState extends State<CounterButton> {
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
 
           // Simbol
           Text(widget.button.symbol, style: TextStyle(
-            fontSize: _theme.symbolSize, color: fgColor)),
+            fontSize: _theme.symbolSize * 0.75,
+            color: fgColor,
+            height: 1.1,
+          )),
 
           // Label
           if (widget.showLabel)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                widget.button.getLabel(_tr.language),
-                style: TextStyle(
-                  fontFamily: 'monospace', fontSize: _theme.labelSize,
-                  letterSpacing: 0.8, color: subColor),
+            Text(
+              widget.button.getLabel(_tr.language),
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: _theme.labelSize * 0.85,
+                letterSpacing: 0.5,
+                color: subColor,
+                height: 1.2,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
 
           // + broj −
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               _controlBtn('−', widget.onMinus, isActive),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
                   '${widget.value}',
                   style: TextStyle(
                     fontFamily: 'monospace',
-                    fontSize: _theme.counterSize,
+                    fontSize: _theme.counterSize * 0.75,
                     fontWeight: FontWeight.w600,
                     color: fgColor,
                   ),
@@ -96,7 +104,7 @@ class _CounterButtonState extends State<CounterButton> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 28, height: 28,
+        width: 22, height: 22,
         decoration: BoxDecoration(
           color: isActive
               ? Colors.white.withOpacity(0.15)
@@ -105,11 +113,11 @@ class _CounterButtonState extends State<CounterButton> {
             color: isActive
                 ? Colors.white.withOpacity(0.3)
                 : _theme.border),
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(3),
         ),
         child: Center(
           child: Text(label, style: TextStyle(
-            fontSize: 16,
+            fontSize: 13,
             fontWeight: FontWeight.w600,
             color: isActive ? _theme.accentText : _theme.inkMedium,
           )),
