@@ -115,13 +115,14 @@ class DbService {
 
   Future<LogEntryModel> addLog({
     required String type,
-    String?  buttonId,
-    int?     delta,
-    String?  textValue,
+    String?   buttonId,
+    int?      delta,
+    String?   textValue,
+    DateTime? timestamp,
   }) async {
     final db    = await database;
     final entry = LogEntryModel(
-      timestamp: DateTime.now().toIso8601String(),
+      timestamp: (timestamp ?? DateTime.now()).toIso8601String(),
       type:      type,
       buttonId:  buttonId,
       delta:     delta,
@@ -200,7 +201,7 @@ class DbService {
   }
 
   // Sacuvaj tekst za button (zamijeni stari za taj dan)
-  Future<void> saveTextValue(String buttonId, DateTime date, String text) async {
+  Future<void> saveTextValue(String buttonId, DateTime date, String text, {DateTime? timestamp}) async {
     final db  = await database;
     final key = DailyValueModel.dateKey(date);
     // Soft-delete stare text unose za taj dan
@@ -209,7 +210,7 @@ class DbService {
       whereArgs: [buttonId, 'text', '${key}%'],
     );
     // Dodaj novi
-    await addLog(type: 'text', buttonId: buttonId, textValue: text);
+    await addLog(type: 'text', buttonId: buttonId, textValue: text, timestamp: timestamp ?? date);
   }
 
   // Svi text values za datum

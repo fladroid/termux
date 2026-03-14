@@ -81,14 +81,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final current = _values[button.id] ?? 0;
     if (delta < 0 && current <= 0) return;
     final newValue = await _db.changeValue(button.id, _selectedDate, delta);
-    await _db.addLog(type: LogType.counter, buttonId: button.id, delta: delta);
+    await _db.addLog(type: LogType.counter, buttonId: button.id, delta: delta, timestamp: _selectedDate);
     setState(() => _values[button.id] = newValue);
   }
 
   Future<void> _handleTextSave(ButtonModel button, String text) async {
     final allowed = await _checkDateWarning(_selectedDate);
     if (!allowed) return;
-    await _db.saveTextValue(button.id, _selectedDate, text);
+    await _db.saveTextValue(button.id, _selectedDate, text, timestamp: _selectedDate);
     setState(() => _textValues[button.id] = text);
   }
 
