@@ -1,0 +1,39 @@
+{
+  "version": "1.0",
+  "language": "en",
+  "ui": {
+    "show_labels": true
+  },
+  "buttons": [
+    {
+      "id": "btn_1",
+      "symbol": "★",
+      "label": {
+        "en": "star",
+        "sr-lat": "zvezdica",
+        "sr-cyr": "звездица",
+        "hr": "zvjezdica"
+      }
+    },
+    {
+      "id": "btn_2",
+      "symbol": "●",
+      "label": {
+        "en": "dot",
+        "sr-lat": "tackica",
+        "sr-cyr": "тачкица",
+        "hr": "točkica"
+      }
+    },
+    {
+      "id": "btn_3",
+      "symbol": "▲",
+      "label": {
+        "en": "triangle",
+        "sr-lat": "trougao",
+        "sr-cyr": "троугао",
+        "hr": "trokut"
+      }
+    }
+  ]
+}
