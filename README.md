@@ -1,0 +1,1 @@
+# Tracker — osobni tracker simbola
