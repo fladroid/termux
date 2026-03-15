@@ -12,10 +12,6 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
-            <!-- Specifies an Android theme to apply to this Activity as soon as
-                 the Android process has started. This theme is visible to the user
-                 while the Flutter UI initializes. After that, this theme continues
-                 to determine the Window background behind the Flutter UI. -->
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
@@ -25,17 +21,29 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <!-- Don't delete the meta-data below.
-             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+
+        <!-- Tracker Content Provider — lokalni API za medjuaplikacijsku komunikaciju -->
+        <!-- Pristup samo za aplikacije na istom uredjaju, bez mreze                 -->
+        <provider
+            android:name=".TrackerProvider"
+            android:authorities="com.fladroid.tracker.provider"
+            android:exported="true"
+            android:readPermission="com.fladroid.tracker.READ"
+            android:writePermission="com.fladroid.tracker.WRITE" />
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
-    <!-- Required to query activities that can process text, see:
-         https://developer.android.com/training/package-visibility and
-         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
 
-         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    <!-- Dozvole koje druge aplikacije moraju deklarirati da bi pristupile Trackeru -->
+    <permission android:name="com.fladroid.tracker.READ"
+        android:protectionLevel="normal"
+        android:label="Read Tracker data" />
+    <permission android:name="com.fladroid.tracker.WRITE"
+        android:protectionLevel="normal"
+        android:label="Write Tracker data" />
+
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
