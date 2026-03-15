@@ -104,6 +104,7 @@ class DbService {
       WHERE type = 'text'
         AND deleted = 0
         AND button_id IS NOT NULL
+        AND text_value != ''
         AND timestamp BETWEEN ? AND ?
       GROUP BY button_id
     ''', [from.toIso8601String(), to.toIso8601String()]);
