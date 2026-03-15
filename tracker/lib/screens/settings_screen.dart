@@ -65,27 +65,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (confirm == true) { await _config.resetToDefault(); await _load(); }
   }
 
-  Future<void> _cleanDeleted() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title:   Text(_tr.t('clean_title')),
-        content: Text(_tr.t('clean_body', params: {'count': '${_dbStats['deleted_log'] ?? 0}'})),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(_tr.t('reset_confirm_cancel'))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true),  child: Text(_tr.t('clean_ok'))),
-        ],
-      ),
-    );
-    if (confirm == true) {
-      final deleted = await _db.cleanDeleted();
-      final stats   = await _db.getDbStats();
-      setState(() => _dbStats = stats);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(_tr.t('clean_done', params: {'count': '$deleted'}))));
-    }
-  }
 
   Future<void> _importJson() async {
     final r = await _export.importJson();
@@ -184,8 +163,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _sectionLabel(_tr.t('settings_db')),
         _buildDbStats(),
         const SizedBox(height: 10),
-        _actionBtn(_tr.t('clean_btn'), _cleanDeleted, destructive: true),
-        const SizedBox(height: 28),
+
 
         _sectionLabel(_tr.t('settings_reset')),
         _actionBtn(_tr.t('settings_reset_btn'), _resetToDefault, destructive: true),
@@ -197,7 +175,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildDbStats() {
     final total   = _dbStats['total_log']   ?? 0;
     final active  = _dbStats['active_log']  ?? 0;
-    final deleted = _dbStats['deleted_log'] ?? 0;
     final daily   = _dbStats['total_daily'] ?? 0;
     return Container(
       padding: const EdgeInsets.all(14),
@@ -208,7 +185,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(children: [
         _statRow(_tr.t('db_total_log'),    '$total'),
         _statRow(_tr.t('db_active_log'),   '$active'),
-        _statRow(_tr.t('db_deleted_log'),  '$deleted'),
         _statRow(_tr.t('db_daily_values'), '$daily'),
       ]),
     );

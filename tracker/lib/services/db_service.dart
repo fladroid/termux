@@ -97,20 +97,22 @@ class DbService {
     ''', [DailyValueModel.dateKey(from), DailyValueModel.dateKey(to)]);
     final result = <String, int>{ for (var r in counterRes)
       r['button_id'] as String: (r['total'] as int? ?? 0) };
-    // Text gumbi: broj unosa iz log tabele
+    // Text gumbi: zadnji unos po gumbu po danu — ako je neprazan, broji 1
     final textRes = await db.rawQuery('''
-      SELECT button_id, COUNT(*) as total
+      SELECT button_id, date(timestamp) as day, text_value
       FROM log
       WHERE type = 'text'
-        AND deleted = 0
         AND button_id IS NOT NULL
-        AND text_value != ''
         AND timestamp BETWEEN ? AND ?
-      GROUP BY button_id
+      GROUP BY button_id, date(timestamp)
+      HAVING timestamp = MAX(timestamp)
     ''', [from.toIso8601String(), to.toIso8601String()]);
     for (final r in textRes) {
-      final id = r['button_id'] as String;
-      result[id] = (result[id] ?? 0) + (r['total'] as int? ?? 0);
+      final id  = r['button_id'] as String;
+      final val = (r['text_value'] as String?) ?? '';
+      if (val.isNotEmpty) {
+        result[id] = (result[id] ?? 0) + 1;
+      }
     }
     return result;
   }

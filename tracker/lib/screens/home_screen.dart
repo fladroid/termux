@@ -184,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Tracker v2.6', style: TextStyle(
+            Text('Tracker v2.8', style: TextStyle(
               fontFamily: 'monospace', fontSize: _theme.captionSize,
               fontWeight: FontWeight.w600, color: _theme.inkFaint,
               letterSpacing: 1.2)),
@@ -205,13 +205,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(_tr.formatDate(_selectedDate), style: TextStyle(
                   fontFamily: 'monospace', fontSize: _theme.captionSize,
                   color: _theme.inkLight)),
+              const SizedBox(height: 4),
+              _resetBtn(),
             ]),
             Row(children: [
               _navBtn('‹', () => _changeDate(-1)),
               const SizedBox(width: 8),
               _navBtn('›', () => _changeDate(1)),
-              const SizedBox(width: 8),
-              _resetBtn(),
             ]),
           ],
         ),
@@ -266,12 +266,15 @@ class _HomeScreenState extends State<HomeScreen> {
     return GestureDetector(
       onTap: _handleReset,
       child: Container(
-        width: 32, height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          border: Border.all(color: _theme.destructive.withOpacity(0.5)),
+          border: Border.all(color: _theme.destructive.withOpacity(0.4)),
           borderRadius: BorderRadius.circular(4)),
-        child: Center(child: Text('↺',
-          style: TextStyle(fontSize: 16, color: _theme.destructive))),
+        child: Text(_tr.t('reset_day_btn'),
+          style: TextStyle(
+            fontFamily: 'monospace',
+            fontSize: _theme.captionSize - 1,
+            color: _theme.destructive)),
       ),
     );
   }
