@@ -88,14 +88,30 @@ class DbService {
     required DateTime to,
   }) async {
     final db = await database;
-    final res = await db.rawQuery('''
+    // Counter gumbi: iz daily_values
+    final counterRes = await db.rawQuery('''
       SELECT button_id, SUM(value) as total
       FROM daily_values
       WHERE date BETWEEN ? AND ?
       GROUP BY button_id
     ''', [DailyValueModel.dateKey(from), DailyValueModel.dateKey(to)]);
-    return { for (var r in res)
+    final result = <String, int>{ for (var r in counterRes)
       r['button_id'] as String: (r['total'] as int? ?? 0) };
+    // Text gumbi: broj unosa iz log tabele
+    final textRes = await db.rawQuery('''
+      SELECT button_id, COUNT(*) as total
+      FROM log
+      WHERE type = 'text'
+        AND deleted = 0
+        AND button_id IS NOT NULL
+        AND timestamp BETWEEN ? AND ?
+      GROUP BY button_id
+    ''', [from.toIso8601String(), to.toIso8601String()]);
+    for (final r in textRes) {
+      final id = r['button_id'] as String;
+      result[id] = (result[id] ?? 0) + (r['total'] as int? ?? 0);
+    }
+    return result;
   }
 
   // Dnevne vrijednosti za period (za report po danu)

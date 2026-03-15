@@ -29,6 +29,8 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime           _selectedDate = DateTime.now();
   bool               _loading    = true;
   final Set<String>  _warnedDates = {};
+  List<Map<String, String>> _languages = [];
+  String             _currentLang = 'en';
 
   @override
   void initState() { super.initState(); _load(); }
@@ -39,11 +41,15 @@ class _HomeScreenState extends State<HomeScreen> {
     final showLabels  = await _config.getShowLabels();
     final values      = await _db.getValuesForDate(_selectedDate);
     final textValues  = await _db.getTextValuesForDate(_selectedDate);
+    final languages   = await _config.loadLanguages();
+    final currentLang = await _config.getLanguage();
     setState(() {
       _buttons    = buttons;
       _showLabels = showLabels;
       _values     = values;
       _textValues = textValues;
+      _languages  = languages;
+      _currentLang = currentLang;
       _loading    = false;
     });
   }
@@ -132,27 +138,72 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTopBar() {
     final showSub = _tr.isRelativeDay(_selectedDate);
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: _theme.border))),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(_tr.formatHeaderMain(_selectedDate), style: TextStyle(
-              fontFamily: 'monospace', fontSize: _theme.headerSize,
-              fontWeight: FontWeight.w600, color: _theme.ink)),
-            if (showSub)
-              Text(_tr.formatDate(_selectedDate), style: TextStyle(
-                fontFamily: 'monospace', fontSize: _theme.captionSize,
-                color: _theme.inkLight)),
-          ]),
-          Row(children: [
-            _navBtn('‹', () => _changeDate(-1)),
-            const SizedBox(width: 8),
-            _navBtn('›', () => _changeDate(1)),
-          ]),
-        ],
+      child: Column(children: [
+        // Gornji red: Tracker v2.6 + jezik dropdown
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Tracker v2.6', style: TextStyle(
+              fontFamily: 'monospace', fontSize: _theme.captionSize,
+              fontWeight: FontWeight.w600, color: _theme.inkFaint,
+              letterSpacing: 1.2)),
+            if (_languages.isNotEmpty)
+              _buildLangDropdown(),
+          ],
+        ),
+        const SizedBox(height: 6),
+        // Donji red: datum + nav strelice
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(_tr.formatHeaderMain(_selectedDate), style: TextStyle(
+                fontFamily: 'monospace', fontSize: _theme.headerSize,
+                fontWeight: FontWeight.w600, color: _theme.ink)),
+              if (showSub)
+                Text(_tr.formatDate(_selectedDate), style: TextStyle(
+                  fontFamily: 'monospace', fontSize: _theme.captionSize,
+                  color: _theme.inkLight)),
+            ]),
+            Row(children: [
+              _navBtn('‹', () => _changeDate(-1)),
+              const SizedBox(width: 8),
+              _navBtn('›', () => _changeDate(1)),
+            ]),
+          ],
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildLangDropdown() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: _theme.surface,
+        border: Border.all(color: _theme.border),
+        borderRadius: BorderRadius.circular(4)),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _currentLang,
+          isDense: true,
+          dropdownColor: _theme.surface,
+          style: TextStyle(fontFamily: 'monospace',
+            fontSize: _theme.captionSize, color: _theme.ink),
+          items: _languages.map((l) => DropdownMenuItem<String>(
+            value: l['code'],
+            child: Text(l['label'] ?? l['code'] ?? ''),
+          )).toList(),
+          onChanged: (v) async {
+            if (v == null) return;
+            await _config.setLanguage(v);
+            setState(() => _currentLang = v);
+            _load();
+          },
+        ),
       ),
     );
   }
