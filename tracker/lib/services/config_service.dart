@@ -14,8 +14,9 @@ class ConfigService {
   ConfigService._internal();
 
   static const _configFile  = 'user_config.json';
-  static const _langKey     = 'language';
-  static const _labelsKey   = 'show_labels';
+  static const _langKey       = 'language';
+  static const _labelsKey     = 'show_labels';
+  static const _extAccessKey  = 'external_access';
   static const _sizeKey     = 'size';
   static const _contrastKey = 'contrast';
 
@@ -52,7 +53,7 @@ class ConfigService {
     final f = await _userConfigFile();
     if (await f.exists()) await f.delete();
     final prefs = await SharedPreferences.getInstance();
-    for (final k in [_langKey, _labelsKey, _sizeKey, _contrastKey]) {
+    for (final k in [_langKey, _labelsKey, _sizeKey, _contrastKey, _extAccessKey]) {
       await prefs.remove(k);
     }
     await initTranslations();
@@ -96,6 +97,16 @@ class ConfigService {
   Future<void> setShowLabels(bool v) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_labelsKey, v);
+  }
+
+  Future<bool> getExternalAccess() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_extAccessKey) ?? false;
+  }
+
+  Future<void> setExternalAccess(bool v) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_extAccessKey, v);
   }
 
   Future<String> getSize() async {

@@ -5,64 +5,64 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
 import android.database.sqlite.SQLiteDatabase
-import android.database.sqlite.SQLiteOpenHelper
+
 import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Tracker Content Provider
- *
- * Omogucava citanje i pisanje Tracker dnevnih vrijednosti
- * bez mreze, samo lokalno na istom Android uredjaju.
+ * Tracker Content Provider — lokalni API za medjuaplikacijsku komunikaciju.
  *
  * Authority: com.fladroid.tracker.provider
  *
  * URI-ji:
  *   content://com.fladroid.tracker.provider/values
- *       GET (query) - sve vrijednosti za danas
+ *       query -> sve vrijednosti za danas
  *
  *   content://com.fladroid.tracker.provider/values/{button_id}
- *       GET (query) - vrijednost jednog gumba za danas
- *       POST (update) - promijeni vrijednost
- *           ContentValues: delta = +1 ili -1
+ *       query  -> vrijednost jednog gumba za danas
+ *       update -> promijeni vrijednost (ContentValues: delta = +1 ili -1)
  *
- * Kolone u rezultatu:
- *   button_id  TEXT
- *   date       TEXT  (yyyy-MM-dd)
- *   value      INTEGER
+ * Kolone u rezultatu: button_id TEXT | date TEXT | value INTEGER
+ *
+ * Pristup se moze ukljuciti/iskljuciti iz Tracker Settings ekrana.
+ * Ako je iskljucen, sve operacije vracaju prazan rezultat.
  */
 class TrackerProvider : ContentProvider() {
 
     companion object {
         const val AUTHORITY = "com.fladroid.tracker.provider"
         const val DB_NAME   = "tracker_v2.db"
+        const val PREFS_NAME   = "FlutterSharedPreferences"
+        const val PREF_KEY     = "flutter.external_access"
 
         val URI_VALUES: Uri = Uri.parse("content://$AUTHORITY/values")
 
         private val uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
-            addURI(AUTHORITY, "values",       1)  // sve vrijednosti
-            addURI(AUTHORITY, "values/*",     2)  // jedan button_id
+            addURI(AUTHORITY, "values",   1)
+            addURI(AUTHORITY, "values/*", 2)
         }
 
         private fun todayKey(): String =
             SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
     }
 
-    // Direktan pristup SQLite bazi koju Flutter/sqflite koristi
     private lateinit var db: SQLiteDatabase
 
     override fun onCreate(): Boolean {
-        try {
+        return try {
             val dbPath = context!!.getDatabasePath(DB_NAME)
             db = SQLiteDatabase.openDatabase(
-                dbPath.absolutePath,
-                null,
+                dbPath.absolutePath, null,
                 SQLiteDatabase.OPEN_READWRITE or SQLiteDatabase.CREATE_IF_NECESSARY
             )
-        } catch (e: Exception) {
-            return false
-        }
-        return true
+            true
+        } catch (e: Exception) { false }
+    }
+
+    // Provjeri da li je korisnik ukljucio vanjski pristup u Settings-u
+    private fun isAccessEnabled(): Boolean {
+        val prefs = context?.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs?.getBoolean(PREF_KEY, false) ?: false
     }
 
     override fun query(
@@ -70,35 +70,27 @@ class TrackerProvider : ContentProvider() {
         selectionArgs: Array<String>?, sortOrder: String?
     ): Cursor {
         val cursor = MatrixCursor(arrayOf("button_id", "date", "value"))
-        val today  = todayKey()
+        if (!isAccessEnabled()) return cursor  // pristup iskljucen
 
+        val today = todayKey()
         when (uriMatcher.match(uri)) {
             1 -> {
-                // Sve vrijednosti za danas
                 val c = db.rawQuery(
                     "SELECT button_id, date, value FROM daily_values WHERE date = ?",
-                    arrayOf(today)
-                )
+                    arrayOf(today))
                 while (c.moveToNext()) {
-                    cursor.addRow(arrayOf(
-                        c.getString(0), c.getString(1), c.getInt(2)
-                    ))
+                    cursor.addRow(arrayOf(c.getString(0), c.getString(1), c.getInt(2)))
                 }
                 c.close()
             }
             2 -> {
-                // Jedan button_id za danas
                 val buttonId = uri.lastPathSegment ?: return cursor
                 val c = db.rawQuery(
                     "SELECT button_id, date, value FROM daily_values WHERE button_id = ? AND date = ?",
-                    arrayOf(buttonId, today)
-                )
+                    arrayOf(buttonId, today))
                 if (c.moveToFirst()) {
-                    cursor.addRow(arrayOf(
-                        c.getString(0), c.getString(1), c.getInt(2)
-                    ))
+                    cursor.addRow(arrayOf(c.getString(0), c.getString(1), c.getInt(2)))
                 } else {
-                    // Gumb postoji ali nema unosa za danas - vrati 0
                     cursor.addRow(arrayOf(buttonId, today, 0))
                 }
                 c.close()
@@ -111,22 +103,21 @@ class TrackerProvider : ContentProvider() {
         uri: Uri, values: ContentValues?, selection: String?,
         selectionArgs: Array<String>?
     ): Int {
+        if (!isAccessEnabled()) return 0  // pristup iskljucen
         if (uriMatcher.match(uri) != 2) return 0
+
         val buttonId = uri.lastPathSegment ?: return 0
         val delta    = values?.getAsInteger("delta") ?: return 0
         val today    = todayKey()
 
-        // Citaj trenutnu vrijednost
         val c = db.rawQuery(
             "SELECT value FROM daily_values WHERE button_id = ? AND date = ?",
-            arrayOf(buttonId, today)
-        )
+            arrayOf(buttonId, today))
         val current = if (c.moveToFirst()) c.getInt(0) else 0
         c.close()
 
         val newValue = (current + delta).coerceIn(0, 999)
 
-        // Upsert u daily_values
         val cv = ContentValues().apply {
             put("button_id", buttonId)
             put("date", today)
@@ -134,7 +125,6 @@ class TrackerProvider : ContentProvider() {
         }
         db.insertWithOnConflict("daily_values", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
 
-        // Log unos
         val logCv = ContentValues().apply {
             put("timestamp", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(Date()))
             put("type", "counter")
@@ -148,7 +138,6 @@ class TrackerProvider : ContentProvider() {
         return 1
     }
 
-    // Insert i delete nisu podrzani - Tracker je jedini vlasnik podataka
     override fun insert(uri: Uri, values: ContentValues?): Uri? = null
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<String>?): Int = 0
     override fun getType(uri: Uri): String = "vnd.android.cursor.dir/vnd.$AUTHORITY.values"

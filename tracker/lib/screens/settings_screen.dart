@@ -21,7 +21,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _theme  = AppTheme();
 
   String _language   = 'en';
-  bool   _showLabels = true;
+  bool   _showLabels     = true;
+  bool   _externalAccess = false;
   String _size       = 'medium';
   String _contrast   = 'normal';
   bool   _loading    = true;
@@ -38,8 +39,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final contrast  = await _config.getContrast();
     final languages = await _config.loadLanguages();
     final stats     = await _db.getDbStats();
+    final extAccess  = await _config.getExternalAccess();
     setState(() {
       _language = lang; _showLabels = labels;
+      _externalAccess = extAccess;
       _size = size; _contrast = contrast;
       _languages = languages; _dbStats = stats; _loading = false;
     });
@@ -122,6 +125,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _settingsRow(label: _tr.t('settings_show_labels'),
           trailing: Switch(value: _showLabels,
             onChanged: (v) async { await _config.setShowLabels(v); setState(() => _showLabels = v); },
+            activeColor: _theme.accent)),
+        const SizedBox(height: 8),
+        _settingsRow(label: _tr.t('settings_external_access'),
+          trailing: Switch(value: _externalAccess,
+            onChanged: (v) async { await _config.setExternalAccess(v); setState(() => _externalAccess = v); },
             activeColor: _theme.accent)),
         const SizedBox(height: 12),
 
