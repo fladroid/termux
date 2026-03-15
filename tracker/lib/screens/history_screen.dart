@@ -27,6 +27,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
   DateTime _rangeFrom = DateTime.now().subtract(const Duration(days: 7));
   DateTime _rangeTo   = DateTime.now();
 
+  // Proporcionalne sirine kolona - nema piksela, sve relativno
+  // Dan | Datum | Vr. | Sim | +/- | Oznaka
+  static const Map<int, TableColumnWidth> _colWidths = {
+    0: FlexColumnWidth(1.6),  // Dan  (Pon)
+    1: FlexColumnWidth(2.8),  // Datum (dd.mm.yyyy)
+    2: FlexColumnWidth(1.8),  // Vrijeme (hh:mm)
+    3: FlexColumnWidth(1.0),  // Simbol
+    4: FlexColumnWidth(1.4),  // +/-
+    5: FlexColumnWidth(3.0),  // Oznaka
+  };
+
   @override
   void initState() { super.initState(); _load(); }
 
@@ -116,13 +127,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
             onTap: () => Navigator.pop(context),
             child: Text('‹', style: TextStyle(fontSize: 22, color: _theme.inkLight))),
           const SizedBox(width: 10),
-          // FIX: naslov lijevo
           Text(_tr.t('history_title'), style: TextStyle(
             fontFamily: 'monospace', fontSize: _theme.headerSize * 0.8,
             fontWeight: FontWeight.w600, color: _theme.ink)),
           const Spacer(),
           if (_period == _Period.range)
-            Text('${_fmtDate(_rangeFrom)}–${_fmtDate(_rangeTo)}',
+            Text('${_fmtDate(_rangeFrom)}--${_fmtDate(_rangeTo)}',
               style: TextStyle(fontFamily: 'monospace',
                 fontSize: _theme.captionSize, color: _theme.inkLight)),
           const SizedBox(width: 6),
@@ -179,51 +189,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  // FIX: širine kolona dovoljno velike da stane pun tekst
-  // Dan(30) + Datum(72) + Vrij(40) + Sim(22) + Delta(28) = 192 + razmaci
-  // Bilješka je poseban red ispod ako postoji
-  static const double _wDay   = 30;
-  static const double _wDate  = 84;  // dd.mm.yyyy = 10 znakova
-  static const double _wTime  = 46;  // hh:mm = 5 znakova
-  static const double _wSym   = 24;
-  static const double _wDelta = 32;
-  static const double _gap    =  6;
-
+  // Header kao Table - iste proporcije kao redovi podataka
   Widget _buildTableHeader() {
     return Container(
       color: _theme.surface,
       padding: const EdgeInsets.fromLTRB(12, 7, 12, 7),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: _theme.border, width: 1.5))),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Table(
+        columnWidths: _colWidths,
         children: [
-          _hCell(_wDay,   _tr.t('col_day')),
-          SizedBox(width: _gap),
-          _hCell(_wDate,  _tr.t('col_date')),
-          SizedBox(width: _gap),
-          _hCell(_wTime,  _tr.t('col_time')),
-          SizedBox(width: _gap),
-          _hCell(_wSym,   _tr.t('col_symbol')),
-          SizedBox(width: _gap),
-          _hCell(_wDelta, _tr.t('col_delta'), align: TextAlign.right),
-          SizedBox(width: _gap),
-          Expanded(child: _hCell(0, _tr.t('col_label'))),
+          TableRow(children: [
+            _hCell(_tr.t('col_day')),
+            _hCell(_tr.t('col_date')),
+            _hCell(_tr.t('col_time')),
+            _hCell(_tr.t('col_symbol')),
+            _hCell(_tr.t('col_delta')),
+            _hCell(_tr.t('col_label')),
+          ]),
         ],
       ),
     );
   }
 
-  Widget _hCell(double w, String text, {TextAlign align = TextAlign.left}) {
-    final widget = Text(text,
-      style: TextStyle(
-        fontFamily: 'monospace', fontSize: _theme.captionSize - 1,
-        fontWeight: FontWeight.w600, color: _theme.inkFaint),
-      softWrap: false,
-      overflow: TextOverflow.clip,
-      textAlign: align,
+  Widget _hCell(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: Text(text,
+        style: TextStyle(
+          fontFamily: 'monospace', fontSize: _theme.captionSize - 1,
+          fontWeight: FontWeight.w600, color: _theme.inkFaint),
+        overflow: TextOverflow.ellipsis,
+      ),
     );
-    return w > 0 ? SizedBox(width: w, child: widget) : widget;
   }
 
   Widget _buildTable() {
@@ -232,107 +230,102 @@ class _HistoryScreenState extends State<HistoryScreen> {
         style: TextStyle(fontFamily: 'monospace',
           fontSize: _theme.captionSize, color: _theme.inkFaint)));
     }
-    return ListView.builder(
-      itemCount: _entries.length,
-      itemBuilder: (ctx, i) {
-        final e   = _entries[i];
-        final btn = _buttonFor(e.buttonId);
-        final dt  = e.dateTime;
-        final isText    = e.type == LogType.text;
-        final isDeleted = e.deleted;
 
-        final deltaStr = e.delta != null
-            ? (e.delta! > 0 ? '+${e.delta}' : '${e.delta}')
-            : (isText ? '✎' : '');
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Table(
+          columnWidths: _colWidths,
+          children: _entries.asMap().entries.expand((entry) {
+            final i   = entry.key;
+            final e   = entry.value;
+            final btn = _buttonFor(e.buttonId);
+            final dt  = e.dateTime;
+            final isText    = e.type == LogType.text;
+            final isDeleted = e.deleted;
 
-        final labelStr = isText
-            ? (btn?.getLabel(_tr.language) ?? e.buttonId ?? '')
-            : (e.type == LogType.settings
-                ? (e.textValue ?? 'settings')
-                : (btn?.getLabel(_tr.language) ?? e.buttonId ?? ''));
+            final deltaStr = e.delta != null
+                ? (e.delta! > 0 ? '+${e.delta}' : '${e.delta}')
+                : (isText ? 'T' : 'S');
 
-        Color dc = _theme.inkMedium;
-        if (deltaStr.startsWith('+')) dc = _theme.positive;
-        if (deltaStr.startsWith('-')) dc = _theme.destructive;
+            final labelStr = isText
+                ? (btn?.getLabel(_tr.language) ?? e.buttonId ?? '')
+                : (e.type == LogType.settings
+                    ? (e.textValue ?? 'settings')
+                    : (btn?.getLabel(_tr.language) ?? e.buttonId ?? ''));
 
-        final baseSt = TextStyle(
-          fontFamily:  'monospace',
-          fontSize:    _theme.captionSize,
-          color:       isDeleted ? _theme.inkFaint : _theme.inkMedium,
-          decoration:  isDeleted ? TextDecoration.lineThrough : TextDecoration.none,
-        );
+            Color dc = _theme.inkMedium;
+            if (deltaStr.startsWith('+')) dc = _theme.positive;
+            if (deltaStr.startsWith('-')) dc = _theme.destructive;
 
-        return Container(
-          color: i % 2 == 0 ? _theme.surface : _theme.background,
-          padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Glavni red
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+            final baseSt = TextStyle(
+              fontFamily:  'monospace',
+              fontSize:    _theme.captionSize,
+              color:       isDeleted ? _theme.inkFaint : _theme.inkMedium,
+              decoration:  isDeleted ? TextDecoration.lineThrough : TextDecoration.none,
+            );
+
+            final bgColor = i % 2 == 0 ? _theme.surface : _theme.background;
+
+            final mainRow = TableRow(
+              decoration: BoxDecoration(color: bgColor),
+              children: [
+                _dCell(_fmtDay(dt),  baseSt),
+                _dCell(_fmtDate(dt), baseSt),
+                _dCell(_fmtTime(dt), baseSt),
+                _dCell(
+                  btn?.symbol ?? (e.type == LogType.settings ? 'S' : '?'),
+                  baseSt.copyWith(fontSize: _theme.captionSize + 2, decoration: TextDecoration.none),
+                ),
+                _dCell(deltaStr, baseSt.copyWith(color: dc, decoration: TextDecoration.none)),
+                _dCell(labelStr, baseSt, overflow: TextOverflow.ellipsis),
+              ],
+            );
+
+            if (isText && e.textValue != null && e.textValue!.isNotEmpty) {
+              final noteRow = TableRow(
+                decoration: BoxDecoration(color: bgColor),
                 children: [
-                  SizedBox(width: _wDay,
-                    child: Text(_fmtDay(dt), style: baseSt,
-                      softWrap: false, overflow: TextOverflow.clip)),
-                  SizedBox(width: _gap),
-                  SizedBox(width: _wDate,
-                    child: Text(_fmtDate(dt), style: baseSt,
-                      softWrap: false, overflow: TextOverflow.clip)),
-                  SizedBox(width: _gap),
-                  SizedBox(width: _wTime,
-                    child: Text(_fmtTime(dt), style: baseSt,
-                      softWrap: false, overflow: TextOverflow.clip)),
-                  SizedBox(width: _gap),
-                  SizedBox(width: _wSym,
-                    child: Text(
-                      btn?.symbol ?? (e.type == LogType.settings ? '⚙' : '?'),
-                      style: baseSt.copyWith(
-                        fontSize: _theme.captionSize + 2,
-                        decoration: TextDecoration.none),
-                      softWrap: false)),
-                  SizedBox(width: _gap),
-                  SizedBox(width: _wDelta,
-                    child: Text(deltaStr,
-                      style: baseSt.copyWith(
-                        color: dc, decoration: TextDecoration.none),
-                      textAlign: TextAlign.right,
-                      softWrap: false)),
-                  SizedBox(width: _gap),
-                  Expanded(child: Text(labelStr, style: baseSt,
-                    softWrap: false, overflow: TextOverflow.ellipsis)),
-                ],
-              ),
-
-              // FIX: sadržaj bilješke u zasebnom redu ispod
-              if (isText && e.textValue != null && e.textValue!.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.only(
-                    top: 4,
-                    left: _wDay + _wDate + _wTime + _wSym + _gap * 3,
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _theme.accent.withOpacity(0.07),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: _theme.accent.withOpacity(0.2)),
-                    ),
-                    child: Text(
-                      e.textValue!,
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: _theme.captionSize,
-                        color: _theme.inkMedium,
-                        fontStyle: FontStyle.italic,
+                  const SizedBox.shrink(),
+                  const SizedBox.shrink(),
+                  const SizedBox.shrink(),
+                  const SizedBox.shrink(),
+                  const SizedBox.shrink(),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6, right: 4),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _theme.accent.withOpacity(0.07),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: _theme.accent.withOpacity(0.2)),
+                      ),
+                      child: Text(e.textValue!,
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: _theme.captionSize,
+                          color: _theme.inkMedium,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
-          ),
-        );
-      },
+                ],
+              );
+              return [mainRow, noteRow];
+            }
+
+            return [mainRow];
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _dCell(String text, TextStyle style, {TextOverflow overflow = TextOverflow.clip}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Text(text, style: style, overflow: overflow, softWrap: false),
     );
   }
 }
