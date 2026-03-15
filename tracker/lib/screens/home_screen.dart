@@ -98,6 +98,44 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _textValues[button.id] = text);
   }
 
+  Future<void> _handleReset() async {
+    // Provjeri ima li uopće što resetovati
+    final hasValues = _values.values.any((v) => v > 0) ||
+        _textValues.values.any((v) => v.isNotEmpty);
+    if (!hasValues) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title:   Text(_tr.t('reset_day_title')),
+        content: Text(_tr.t('reset_day_body')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(_tr.t('warning_cancel'))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(_tr.t('reset_day_ok'),
+              style: TextStyle(color: _theme.destructive))),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    final counterIds = _buttons.where((b) => b.isCounter).map((b) => b.id).toList();
+    final textIds    = _buttons.where((b) => b.isText).map((b) => b.id).toList();
+
+    await _db.resetDayToZero(
+      date:          _selectedDate,
+      counterIds:    counterIds,
+      textIds:       textIds,
+      currentValues: _values,
+    );
+
+    setState(() {
+      for (final id in counterIds) { _values[id] = 0; }
+      for (final id in textIds)    { _textValues[id] = ''; }
+    });
+  }
+
   void _changeDate(int days) {
     setState(() { _selectedDate = _selectedDate.add(Duration(days: days)); _loading = true; });
     _load();
@@ -172,6 +210,8 @@ class _HomeScreenState extends State<HomeScreen> {
               _navBtn('‹', () => _changeDate(-1)),
               const SizedBox(width: 8),
               _navBtn('›', () => _changeDate(1)),
+              const SizedBox(width: 8),
+              _resetBtn(),
             ]),
           ],
         ),
@@ -218,6 +258,20 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(4)),
         child: Center(child: Text(label,
           style: TextStyle(fontSize: 16, color: _theme.inkLight))),
+      ),
+    );
+  }
+
+  Widget _resetBtn() {
+    return GestureDetector(
+      onTap: _handleReset,
+      child: Container(
+        width: 32, height: 32,
+        decoration: BoxDecoration(
+          border: Border.all(color: _theme.destructive.withOpacity(0.5)),
+          borderRadius: BorderRadius.circular(4)),
+        child: Center(child: Text('↺',
+          style: TextStyle(fontSize: 16, color: _theme.destructive))),
       ),
     );
   }

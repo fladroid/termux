@@ -154,6 +154,40 @@ class DbService {
       where: 'id = ?', whereArgs: [id]);
   }
 
+  // Reset dana na nulu — jedan log unos po counteru s delta=-N, prazan text unos po text gumbu
+  Future<void> resetDayToZero({
+    required DateTime date,
+    required List<String> counterIds,
+    required List<String> textIds,
+    required Map<String, int> currentValues,
+  }) async {
+    final db  = await database;
+    final key = DailyValueModel.dateKey(date);
+    final ts  = DateTime(date.year, date.month, date.day,
+                         DateTime.now().hour, DateTime.now().minute, DateTime.now().second);
+    // Counter: postavi daily_value na 0, upiši log s delta=-N
+    for (final id in counterIds) {
+      final current = currentValues[id] ?? 0;
+      if (current <= 0) continue;
+      await db.update('daily_values', {'value': 0},
+        where: 'button_id = ? AND date = ?', whereArgs: [id, key]);
+      await db.insert('log', LogEntryModel(
+        id: null, timestamp: ts.toIso8601String(), type: LogType.counter,
+        buttonId: id, delta: -current, textValue: null, deleted: false,
+      ).toMap());
+    }
+    // Text: soft-delete stare unose, upiši prazan string
+    for (final id in textIds) {
+      await db.update('log', {'deleted': 1},
+        where: 'button_id = ? AND type = ? AND timestamp LIKE ?',
+        whereArgs: [id, 'text', '\${key}%']);
+      await db.insert('log', LogEntryModel(
+        id: null, timestamp: ts.toIso8601String(), type: LogType.text,
+        buttonId: id, delta: null, textValue: '', deleted: false,
+      ).toMap());
+    }
+  }
+
   // Log za period — aktivni unosi
   Future<List<LogEntryModel>> getLogForRange({
     required DateTime from,
