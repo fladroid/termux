@@ -152,16 +152,17 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Widget _buildContent() {
-    if (_buttons.isEmpty) {
+    final counters = _buttons.where((b) => b.isCounter).toList();
+    if (counters.isEmpty) {
       return Center(child: Text(_tr.t('no_entries_period'),
         style: TextStyle(fontFamily: 'monospace',
           fontSize: _theme.captionSize, color: _theme.inkFaint)));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(20),
-      itemCount: _buttons.length,
+      itemCount: counters.length,
       itemBuilder: (ctx, i) {
-        final btn   = _buttons[i];
+        final btn   = counters[i];
         final total = _cumulative[btn.id] ?? 0;
         return Container(
           margin: const EdgeInsets.only(bottom: 10),

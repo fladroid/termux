@@ -149,9 +149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 6),
         _actionBtn(_tr.t('settings_export_csv'),      () => _export.exportCsv()),
         const SizedBox(height: 6),
-        _actionBtn(_tr.t('settings_export_json_all'), () => _export.exportJson(includeDeleted: true)),
-        const SizedBox(height: 6),
-        _actionBtn(_tr.t('settings_export_csv_all'),  () => _export.exportCsv(includeDeleted: true)),
+
         const SizedBox(height: 28),
 
         _sectionLabel(_tr.t('settings_import')),

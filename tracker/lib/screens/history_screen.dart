@@ -183,8 +183,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   // Dan(30) + Datum(72) + Vrij(40) + Sim(22) + Delta(28) = 192 + razmaci
   // Bilješka je poseban red ispod ako postoji
   static const double _wDay   = 30;
-  static const double _wDate  = 72;  // dd.mm.yyyy = 10 znakova
-  static const double _wTime  = 40;  // hh:mm = 5 znakova
+  static const double _wDate  = 84;  // dd.mm.yyyy = 10 znakova
+  static const double _wTime  = 46;  // hh:mm = 5 znakova
   static const double _wSym   = 24;
   static const double _wDelta = 32;
   static const double _gap    =  6;
