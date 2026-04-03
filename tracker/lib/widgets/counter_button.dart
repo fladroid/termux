@@ -75,25 +75,28 @@ class _CounterButtonState extends State<CounterButton> {
           const SizedBox(height: 4),
 
           // + broj −
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _controlBtn('−', widget.onMinus, isActive),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  '${widget.value}',
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: _theme.counterSize * 0.75,
-                    fontWeight: FontWeight.w600,
-                    color: fgColor,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _controlBtn('−', widget.onMinus, isActive),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Text(
+                    '${widget.value}',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: _theme.counterSize * 0.75,
+                      fontWeight: FontWeight.w600,
+                      color: fgColor,
+                    ),
                   ),
                 ),
-              ),
-              _controlBtn('+', widget.onPlus, isActive),
-            ],
+                _controlBtn('+', widget.onPlus, isActive),
+              ],
+            ),
           ),
         ],
       ),
@@ -101,10 +104,11 @@ class _CounterButtonState extends State<CounterButton> {
   }
 
   Widget _controlBtn(String label, VoidCallback onTap, bool isActive) {
+    final btnSize = (_theme.counterSize * 0.85).clamp(20.0, 36.0);
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 22, height: 22,
+        width: btnSize, height: btnSize,
         decoration: BoxDecoration(
           color: isActive
               ? Colors.white.withOpacity(0.15)

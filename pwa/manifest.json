@@ -1,0 +1,18 @@
+{
+  "name": "Tracker",
+  "short_name": "Tracker",
+  "description": "Personal activity tracker. Offline, private, no cloud.",
+  "start_url": "/termux/pwa/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "../tracker_icon_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
