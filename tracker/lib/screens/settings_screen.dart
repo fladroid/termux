@@ -72,19 +72,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _importJson() async {
     final r = await _export.importJson();
     if (!mounted || r.cancelled) return;
+    if (r.success) {
+      Navigator.pop(context);
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
-      r.success
-        ? _tr.t('import_success', params: {'imported': '${r.imported}', 'skipped': '${r.skipped}'})
-        : _tr.t('import_error',   params: {'error': r.errorMessage ?? ''}))));
+      _tr.t('import_error', params: {'error': r.errorMessage ?? ''}))));
   }
 
   Future<void> _importCsv() async {
     final r = await _export.importCsv();
     if (!mounted || r.cancelled) return;
+    if (r.success) {
+      Navigator.pop(context);
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
-      r.success
-        ? _tr.t('import_success', params: {'imported': '${r.imported}', 'skipped': '${r.skipped}'})
-        : _tr.t('import_error',   params: {'error': r.errorMessage ?? ''}))));
+      _tr.t('import_error', params: {'error': r.errorMessage ?? ''}))));
   }
 
   @override
