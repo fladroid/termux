@@ -44,6 +44,13 @@
         android:protectionLevel="normal"
         android:label="Write Tracker data" />
 
+    <!-- Dozvole za citanje fajlova — potrebno za file_picker (import CSV/JSON) -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>

@@ -48,45 +48,80 @@ class ExportService {
   }
 
   Future<ImportResult> importJson() async {
-    final content = await _pickFile(extension: 'json');
+    final String? content;
+    try {
+      content = await _pickFile(extension: 'json');
+    } catch (e) {
+      return ImportResult.error(message: 'File picker error: \${e.toString()}');
+    }
     if (content == null) return ImportResult.cancelled();
     try {
       final data  = jsonDecode(content) as Map<String, dynamic>;
       final list  = data['entries'] as List<dynamic>;
       int imported = 0, skipped = 0;
+      final Map<String, Map<String, int>> dailyTotals = {};
       for (final item in list) {
         try {
           final e = LogEntryModel.fromMap(item as Map<String, dynamic>);
           await _db.addLog(
             type: e.type, buttonId: e.buttonId,
             delta: e.delta, textValue: e.textValue,
+            timestamp: DateTime.tryParse(e.timestamp),
           );
+          if (e.type == 'counter' && e.buttonId != null && e.delta != null) {
+            final date = e.timestamp.length >= 10 ? e.timestamp.substring(0, 10) : '';
+            if (date.isNotEmpty) {
+              dailyTotals.putIfAbsent(e.buttonId!, () => {})[date] =
+                  (dailyTotals[e.buttonId]![date] ?? 0) + e.delta!;
+            }
+          }
           imported++;
         } catch (_) { skipped++; }
       }
+      await _db.rebuildDailyValues(dailyTotals);
       return ImportResult.success(imported: imported, skipped: skipped);
     } catch (e) { return ImportResult.error(message: e.toString()); }
   }
 
   Future<ImportResult> importCsv() async {
-    final content = await _pickFile(extension: 'csv');
+    final String? content;
+    try {
+      content = await _pickFile(extension: 'csv');
+    } catch (e) {
+      return ImportResult.error(message: 'File picker error: \${e.toString()}');
+    }
     if (content == null) return ImportResult.cancelled();
     try {
       final lines = content.trim().split('\n').skip(1).toList();
       int imported = 0, skipped = 0;
+      final Map<String, Map<String, int>> dailyTotals = {}; // button_id -> date -> sum
       for (final line in lines) {
         try {
           final c = line.trim().split(',');
           if (c.length < 4) { skipped++; continue; }
+          final type      = c[2].trim();
+          final buttonId  = c[3].trim().isEmpty ? null : c[3].trim();
+          final delta     = c.length > 4 && c[4].trim().isNotEmpty ? int.tryParse(c[4].trim()) : null;
+          final textValue = c.length > 5 && c[5].trim().isNotEmpty ? c[5].trim() : null;
+          final timestamp = c[1].trim();
           await _db.addLog(
-            type:      c[2].trim(),
-            buttonId:  c[3].trim().isEmpty ? null : c[3].trim(),
-            delta:     c.length > 4 && c[4].trim().isNotEmpty ? int.parse(c[4].trim()) : null,
-            textValue: c.length > 5 && c[5].trim().isNotEmpty ? c[5].trim() : null,
+            type: type, buttonId: buttonId,
+            delta: delta, textValue: textValue,
+            timestamp: DateTime.tryParse(timestamp),
           );
+          // Akumuliraj daily_values za counter unose
+          if (type == 'counter' && buttonId != null && delta != null) {
+            final date = timestamp.length >= 10 ? timestamp.substring(0, 10) : '';
+            if (date.isNotEmpty) {
+              dailyTotals.putIfAbsent(buttonId, () => {})[date] =
+                  (dailyTotals[buttonId]![date] ?? 0) + delta;
+            }
+          }
           imported++;
         } catch (_) { skipped++; }
       }
+      // Rekonstruiraj daily_values
+      await _db.rebuildDailyValues(dailyTotals);
       return ImportResult.success(imported: imported, skipped: skipped);
     } catch (e) { return ImportResult.error(message: e.toString()); }
   }

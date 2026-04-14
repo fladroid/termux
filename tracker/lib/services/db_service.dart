@@ -217,6 +217,24 @@ class DbService {
   }
 
   // Fizicko brisanje soft-deleted log unosa
+  // Rekonstruiraj daily_values iz importovanih log unosa
+  // Koristi se nakon importa JSON/CSV da counteri budu vidljivi na ekranu
+  Future<void> rebuildDailyValues(Map<String, Map<String, int>> totals) async {
+    final db = await database;
+    for (final buttonId in totals.keys) {
+      for (final date in totals[buttonId]!.keys) {
+        final delta = totals[buttonId]![date]!;
+        if (delta <= 0) continue;
+        final value = delta.clamp(0, 999);
+        await db.execute(
+          'INSERT INTO daily_values (button_id, date, value) VALUES (?, ?, ?) '
+          'ON CONFLICT(button_id, date) DO UPDATE SET value = value + excluded.value',
+          [buttonId, date, value],
+        );
+      }
+    }
+  }
+
   Future<int> cleanDeleted() async {
     final db = await database;
     return await db.delete('log', where: 'deleted = 1');
