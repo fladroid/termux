@@ -184,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Tracker v3.0.2', style: TextStyle(
+            Text('Tracker v3.0.3', style: TextStyle(
               fontFamily: 'monospace', fontSize: _theme.captionSize,
               fontWeight: FontWeight.w600, color: _theme.inkFaint,
               letterSpacing: 1.2)),
@@ -346,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _bottomBtn('📊', _tr.t('nav_report'), false,
           () => Navigator.pushNamed(context, '/report')),
         _bottomBtn('↗', _tr.t('nav_export'), false,
-          () => Navigator.pushNamed(context, '/settings')),
+          () => Navigator.pushNamed(context, '/settings').then((_) => _load())),
         _bottomBtn('⚙', _tr.t('nav_settings'), false,
           () => Navigator.pushNamed(context, '/settings').then((_) => _load())),
       ]),
