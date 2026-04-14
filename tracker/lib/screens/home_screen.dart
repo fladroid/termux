@@ -160,15 +160,22 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: _onWillPop,
-      child: Scaffold(
-        backgroundColor: _theme.background,
-        body: SafeArea(child: Column(children: [
-          _buildTopBar(),
-          Expanded(child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : _buildContent()),
-          _buildBottomBar(),
-        ])),
+      child: GestureDetector(
+        onHorizontalDragEnd: (details) {
+          if (details.primaryVelocity == null) return;
+          if (details.primaryVelocity! < -200) _changeDate(1);
+          if (details.primaryVelocity! >  200) _changeDate(-1);
+        },
+        child: Scaffold(
+          backgroundColor: _theme.background,
+          body: SafeArea(child: Column(children: [
+            _buildTopBar(),
+            Expanded(child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _buildContent()),
+            _buildBottomBar(),
+          ])),
+        ),
       ),
     );
   }
@@ -184,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Tracker v3.0.3', style: TextStyle(
+            Text('Tracker v3.0.4', style: TextStyle(
               fontFamily: 'monospace', fontSize: _theme.captionSize,
               fontWeight: FontWeight.w600, color: _theme.inkFaint,
               letterSpacing: 1.2)),
@@ -196,18 +203,28 @@ class _HomeScreenState extends State<HomeScreen> {
         // Donji red: datum + nav strelice
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(_tr.formatHeaderMain(_selectedDate), style: TextStyle(
-                fontFamily: 'monospace', fontSize: _theme.headerSize,
-                fontWeight: FontWeight.w600, color: _theme.ink)),
-              if (showSub)
-                Text(_tr.formatDate(_selectedDate), style: TextStyle(
-                  fontFamily: 'monospace', fontSize: _theme.captionSize,
-                  color: _theme.inkLight)),
-              const SizedBox(height: 4),
-              _resetBtn(),
-            ]),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(_tr.formatHeaderMain(_selectedDate), style: TextStyle(
+                    fontFamily: 'monospace', fontSize: _theme.headerSize,
+                    fontWeight: FontWeight.w600, color: _theme.ink))),
+                if (showSub)
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(_tr.formatDate(_selectedDate), style: TextStyle(
+                      fontFamily: 'monospace', fontSize: _theme.captionSize,
+                      color: _theme.inkLight))),
+                const SizedBox(height: 4),
+                _resetBtn(),
+              ]),
+            ),
+            const SizedBox(width: 8),
             Row(children: [
               _navBtn('‹', () => _changeDate(-1)),
               const SizedBox(width: 8),
