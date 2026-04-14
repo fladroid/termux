@@ -224,7 +224,7 @@ class DbService {
     final db = await database;
     // Obrisi stare log unose i daily_values samo za dane koji su u importu
     for (final date in importDates) {
-      await db.delete('log', where: 'timestamp LIKE ?', whereArgs: ['\${date}%']);
+      await db.delete('log', where: 'timestamp LIKE ?', whereArgs: ['${date}%']);
       await db.delete('daily_values', where: 'date = ?', whereArgs: [date]);
     }
     // Upisati nove daily_values iz importovanih suma
