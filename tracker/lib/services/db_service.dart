@@ -217,18 +217,24 @@ class DbService {
   }
 
   // Fizicko brisanje soft-deleted log unosa
-  // Rekonstruiraj daily_values iz importovanih log unosa
-  // Koristi se nakon importa JSON/CSV da counteri budu vidljivi na ekranu
-  Future<void> rebuildDailyValues(Map<String, Map<String, int>> totals) async {
+  // Restore daily_values i log iz importa — semantika je restore, ne merge.
+  // Za svaki dan koji postoji u importu: brisi stare log unose i daily_values,
+  // upisi nove. Dani kojih nema u importu ostaju netaknuti.
+  Future<void> rebuildDailyValues(Map<String, Map<String, int>> totals, List<String> importDates) async {
     final db = await database;
+    // Obrisi stare log unose i daily_values samo za dane koji su u importu
+    for (final date in importDates) {
+      await db.delete('log', where: 'timestamp LIKE ?', whereArgs: ['\${date}%']);
+      await db.delete('daily_values', where: 'date = ?', whereArgs: [date]);
+    }
+    // Upisati nove daily_values iz importovanih suma
     for (final buttonId in totals.keys) {
       for (final date in totals[buttonId]!.keys) {
-        final delta = totals[buttonId]![date]!;
-        if (delta <= 0) continue;
-        final value = delta.clamp(0, 999);
+        final value = totals[buttonId]![date]!.clamp(0, 999);
+        if (value <= 0) continue;
         await db.execute(
           'INSERT INTO daily_values (button_id, date, value) VALUES (?, ?, ?) '
-          'ON CONFLICT(button_id, date) DO UPDATE SET value = value + excluded.value',
+          'ON CONFLICT(button_id, date) DO UPDATE SET value = excluded.value',
           [buttonId, date, value],
         );
       }
