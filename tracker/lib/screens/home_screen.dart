@@ -29,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime           _selectedDate = DateTime.now();
   bool               _loading    = true;
   int                _slideDirection = 1; // 1 = lijevo (sljedeći), -1 = desno (prethodni)
+  String             _animationKey = ''; // mijenja se tek kad podaci stignu
   final Set<String>  _warnedDates = {};
   List<Map<String, String>> _languages = [];
   String             _currentLang = 'en';
@@ -48,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _buttons    = buttons;
       _showLabels = showLabels;
       _values     = values;
+      _animationKey = '${_slideDirection > 0 ? "R" : "L"}_${_selectedDate.toIso8601String()}';
       _textValues = textValues;
       _languages  = languages;
       _currentLang = currentLang;
@@ -176,27 +178,27 @@ class _HomeScreenState extends State<HomeScreen> {
           body: SafeArea(child: Column(children: [
             _buildTopBar(),
             Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                transitionBuilder: (child, animation) {
-                  // smjer je enkodiran u key — čitamo iz child.key
-                  final key = child.key;
-                  final dir = (key is ValueKey && key.value.toString().startsWith('L')) ? -1.0 : 1.0;
-                  final offset = Tween<Offset>(
-                    begin: Offset(dir, 0),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut));
-                  return SlideTransition(position: offset, child: child);
-                },
-                child: _loading
-                  ? const Center(
-                      key: ValueKey('loading'),
-                      child: CircularProgressIndicator(),
-                    )
-                  : KeyedSubtree(
-                      key: ValueKey('${_slideDirection > 0 ? "R" : "L"}_${_selectedDate.toIso8601String()}'),
+              child: Stack(
+                children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 280),
+                    transitionBuilder: (child, animation) {
+                      final key = child.key;
+                      final dir = (key is ValueKey && key.value.toString().startsWith('L')) ? -1.0 : 1.0;
+                      final offset = Tween<Offset>(
+                        begin: Offset(dir, 0),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut));
+                      return SlideTransition(position: offset, child: child);
+                    },
+                    child: KeyedSubtree(
+                      key: ValueKey(_animationKey),
                       child: _buildContent(),
                     ),
+                  ),
+                  if (_loading)
+                    const Center(child: CircularProgressIndicator()),
+                ],
               ),
             ),
             _buildBottomBar(),
@@ -217,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Tracker v3.0.10', style: TextStyle(
+            Text('Tracker v3.0.11', style: TextStyle(
               fontFamily: 'monospace', fontSize: _theme.captionSize,
               fontWeight: FontWeight.w600, color: _theme.inkFaint,
               letterSpacing: 1.2)),
