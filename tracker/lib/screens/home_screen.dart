@@ -176,22 +176,28 @@ class _HomeScreenState extends State<HomeScreen> {
           body: SafeArea(child: Column(children: [
             _buildTopBar(),
             Expanded(
-              child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    transitionBuilder: (child, animation) {
-                      final offset = Tween<Offset>(
-                        begin: Offset(_slideDirection.toDouble(), 0),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut));
-                      return SlideTransition(position: offset, child: child);
-                    },
-                    child: KeyedSubtree(
-                      key: ValueKey(_selectedDate.toIso8601String()),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                transitionBuilder: (child, animation) {
+                  // smjer je enkodiran u key — čitamo iz child.key
+                  final key = child.key;
+                  final dir = (key is ValueKey && key.value.toString().startsWith('L')) ? -1.0 : 1.0;
+                  final offset = Tween<Offset>(
+                    begin: Offset(dir, 0),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut));
+                  return SlideTransition(position: offset, child: child);
+                },
+                child: _loading
+                  ? const Center(
+                      key: ValueKey('loading'),
+                      child: CircularProgressIndicator(),
+                    )
+                  : KeyedSubtree(
+                      key: ValueKey('${_slideDirection > 0 ? "R" : "L"}_${_selectedDate.toIso8601String()}'),
                       child: _buildContent(),
                     ),
-                  ),
+              ),
             ),
             _buildBottomBar(),
           ])),
