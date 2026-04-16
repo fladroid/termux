@@ -112,7 +112,7 @@ class ConfigService {
 
   Future<bool> getAllowPastFuture() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_allowPastFutureKey) ?? false;
+    return prefs.getBool(_allowPastFutureKey) ?? true;
   }
 
   Future<void> setAllowPastFuture(bool v) async {
