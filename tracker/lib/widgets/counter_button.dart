@@ -46,39 +46,36 @@ class _CounterButtonState extends State<CounterButton> {
           color: isActive ? _theme.accent : _theme.ink, width: 1.5),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-
-          // Simbol
+          // Simbol lijevo
           Text(widget.button.symbol, style: TextStyle(
             fontSize: _theme.symbolSize * 1.2,
             color: fgColor,
-            height: 1.1,
+            height: 1.0,
           )),
-
-          // Label
+          const SizedBox(width: 6),
+          // Label ispod simbola
           if (widget.showLabel)
-            Text(
-              widget.button.getLabel(_tr.language),
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: _theme.labelSize * 0.85,
-                letterSpacing: 0.5,
-                color: subColor,
-                height: 1.2,
+            Expanded(
+              child: Text(
+                widget.button.getLabel(_tr.language),
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: _theme.labelSize * 0.85,
+                  letterSpacing: 0.5,
+                  color: subColor,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
-              overflow: TextOverflow.ellipsis,
-            ),
-
-          const SizedBox(height: 4),
-
-          // + broj −
+            )
+          else
+            const Spacer(),
+          // + broj − desno
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
                 _controlBtn('−', widget.onMinus, isActive),

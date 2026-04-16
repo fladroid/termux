@@ -76,41 +76,41 @@ class _TextButtonWidgetState extends State<TextButtonWidget> {
           border: Border.all(color: border, width: hasText ? 1.5 : 1.0),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(children: [
-              Text(widget.button.symbol, style: TextStyle(
-                fontSize: _theme.symbolSize * 0.65,
-
-              )),
-              const SizedBox(width: 6),
-              if (widget.showLabel)
-                Expanded(child: Text(
-                  widget.button.getLabel(_tr.language),
-                  style: TextStyle(fontFamily: 'monospace',
-                    fontSize: _theme.labelSize, color: _theme.inkFaint),
-                  overflow: TextOverflow.ellipsis,
-                )),
-            ]),
-            if (hasText) ...[
-              const SizedBox(height: 4),
-              Text(
-                widget.savedText!,
-                style: TextStyle(fontFamily: 'monospace',
-                  fontSize: _theme.captionSize, color: _theme.inkMedium),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
+            // Simbol
+            Text(widget.button.symbol, style: TextStyle(
+              fontSize: _theme.symbolSize * 0.85,
+            )),
+            const SizedBox(width: 6),
+            // Labela + tekst u jednoj koloni
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.showLabel)
+                    Text(
+                      widget.button.getLabel(_tr.language),
+                      style: TextStyle(fontFamily: 'monospace',
+                        fontSize: _theme.labelSize * 0.85, color: _theme.inkFaint),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  Text(
+                    hasText ? widget.savedText! : _tr.t('text_tap_to_edit'),
+                    style: TextStyle(fontFamily: 'monospace',
+                      fontSize: _theme.captionSize,
+                      color: hasText ? _theme.inkMedium : _theme.inkFaint,
+                      fontStyle: hasText ? FontStyle.normal : FontStyle.italic),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ],
               ),
-            ] else ...[
-              const SizedBox(height: 4),
-              Text(_tr.t('text_tap_to_edit'),
-                style: TextStyle(fontFamily: 'monospace',
-                  fontSize: _theme.captionSize, color: _theme.inkFaint,
-                  fontStyle: FontStyle.italic)),
-            ],
+            ),
           ],
         ),
       ),
