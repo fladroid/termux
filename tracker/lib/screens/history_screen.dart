@@ -24,18 +24,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
   List<LogEntryModel> _entries = [];
   bool    _loading = true;
   _Period _period  = _Period.week;
+  bool    _sortDesc = true; // true = najnoviji gore
   DateTime _rangeFrom = DateTime.now().subtract(const Duration(days: 7));
   DateTime _rangeTo   = DateTime.now();
 
-  // Proporcionalne sirine kolona - nema piksela, sve relativno
-  // Dan | Datum | Vr. | Sim | +/- | Oznaka
+  // Kolone unutar dana: Vrijeme | Simbol | +/- | Oznaka
   static const Map<int, TableColumnWidth> _colWidths = {
-    0: FlexColumnWidth(1.6),  // Dan  (Pon)
-    1: FlexColumnWidth(2.0),  // Datum (dd.mm.yy)
-    2: FlexColumnWidth(1.8),  // Vrijeme (hh:mm)
-    3: FlexColumnWidth(1.0),  // Simbol
-    4: FlexColumnWidth(1.4),  // +/-
-    5: FlexColumnWidth(3.0),  // Oznaka
+    0: FlexColumnWidth(1.6),  // Vrijeme (hh:mm)
+    1: FlexColumnWidth(1.0),  // Simbol
+    2: FlexColumnWidth(1.2),  // +/-
+    3: FlexColumnWidth(4.0),  // Oznaka
   };
 
   @override
@@ -93,6 +91,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   String _p(int n)             => n.toString().padLeft(2, '0');
+  String _dateKey(DateTime dt)  => '\${dt.year}-\${_p(dt.month)}-\${_p(dt.day)}';
   String _fmtDate(DateTime dt) => '${_p(dt.day)}.${_p(dt.month)}.${dt.year.toString().substring(2)}';
   String _fmtTime(DateTime dt) => '${_p(dt.hour)}:${_p(dt.minute)}';
   String _fmtDay(DateTime dt)  {
@@ -107,7 +106,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       body: SafeArea(child: Column(children: [
         _buildTopBar(),
         _buildPeriodSelector(),
-        _buildTableHeader(),
         _loading
             ? const Expanded(child: Center(child: CircularProgressIndicator()))
             : Expanded(child: _buildTable()),
@@ -168,6 +166,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
               color: _period == _Period.range ? _theme.accentText : _theme.inkLight)),
           ),
         ),
+        const Spacer(),
+        // Sort gumb ↓ / ↑
+        GestureDetector(
+          onTap: () => setState(() => _sortDesc = !_sortDesc),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: _theme.surface,
+              border: Border.all(color: _theme.border),
+              borderRadius: BorderRadius.circular(4)),
+            child: Text(_sortDesc ? '↓' : '↑', style: TextStyle(
+              fontFamily: 'monospace', fontSize: _theme.captionSize,
+              color: _theme.ink)),
+          ),
+        ),
       ]),
     );
   }
@@ -189,31 +202,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  // Header kao Table - iste proporcije kao redovi podataka
-  Widget _buildTableHeader() {
-    return Container(
-      color: _theme.surface,
-      padding: const EdgeInsets.fromLTRB(12, 7, 12, 7),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: _theme.border, width: 1.5))),
-      child: Table(
-        columnWidths: _colWidths,
-        border: TableBorder(
-          verticalInside: BorderSide(color: _theme.border, width: 1),
-        ),
-        children: [
-          TableRow(children: [
-            _hCell(_tr.t('col_day')),
-            _hCell(_tr.t('col_date')),
-            _hCell(_tr.t('col_time')),
-            _hCell(_tr.t('col_symbol')),
-            _hCell(_tr.t('col_delta')),
-            _hCell(_tr.t('col_label')),
-          ]),
-        ],
-      ),
-    );
-  }
+  // Header uklonjen — grupiranje po danima
 
   Widget _hCell(String text) {
     return Padding(
@@ -234,95 +223,116 @@ class _HistoryScreenState extends State<HistoryScreen> {
           fontSize: _theme.captionSize, color: _theme.inkFaint)));
     }
 
+    // Grupiranje po danu
+    final Map<String, List<LogEntryModel>> byDay = {};
+    for (final e in _entries) {
+      final key = _dateKey(e.dateTime);
+      byDay.putIfAbsent(key, () => []).add(e);
+    }
+
+    // Sortirani dani
+    final days = byDay.keys.toList()
+      ..sort((a, b) => _sortDesc ? b.compareTo(a) : a.compareTo(b));
+
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Table(
-          columnWidths: _colWidths,
-          border: TableBorder(
-            verticalInside: BorderSide(color: _theme.border, width: 1),
-            horizontalInside: BorderSide(color: _theme.border.withOpacity(0.5), width: 0.5),
-          ),
-          children: _entries.asMap().entries.expand((entry) {
-            final i   = entry.key;
-            final e   = entry.value;
-            final btn = _buttonFor(e.buttonId);
-            final dt  = e.dateTime;
-            final isText    = e.type == LogType.text;
-            final isDeleted = e.deleted;
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: days.map((dayKey) {
+            final dayEntries = byDay[dayKey]!;
+            // Sort unutar dana
+            dayEntries.sort((a, b) => _sortDesc
+                ? b.dateTime.compareTo(a.dateTime)
+                : a.dateTime.compareTo(b.dateTime));
+            final dt = dayEntries.first.dateTime;
 
-            final deltaStr = e.delta != null
-                ? (e.delta! > 0 ? '+${e.delta}' : '${e.delta}')
-                : (isText ? 'T' : 'S');
-
-            final labelStr = isText
-                ? (btn?.getLabel(_tr.language) ?? e.buttonId ?? '')
-                : (e.type == LogType.settings
-                    ? (e.textValue ?? 'settings')
-                    : (btn?.getLabel(_tr.language) ?? e.buttonId ?? ''));
-
-            Color dc = _theme.inkMedium;
-            if (deltaStr.startsWith('+')) dc = _theme.positive;
-            if (deltaStr.startsWith('-')) dc = _theme.destructive;
-
-            final baseSt = TextStyle(
-              fontFamily:  'monospace',
-              fontSize:    _theme.captionSize,
-              color:       isDeleted ? _theme.inkFaint : _theme.inkMedium,
-              decoration:  isDeleted ? TextDecoration.lineThrough : TextDecoration.none,
-            );
-
-            final bgColor = i % 2 == 0 ? _theme.surface : _theme.background;
-
-            final mainRow = TableRow(
-              decoration: BoxDecoration(color: bgColor),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _dCell(_fmtDay(dt),  baseSt),
-                _dCell(_fmtDate(dt), baseSt),
-                _dCell(_fmtTime(dt), baseSt),
-                _dCell(
-                  btn?.symbol ?? (e.type == LogType.settings ? 'S' : '?'),
-                  baseSt.copyWith(fontSize: _theme.captionSize + 2, decoration: TextDecoration.none),
-                ),
-                _dCell(deltaStr, baseSt.copyWith(color: dc, decoration: TextDecoration.none)),
-                _dCell(labelStr, baseSt, overflow: TextOverflow.ellipsis),
-              ],
-            );
-
-            if (isText && e.textValue != null && e.textValue!.isNotEmpty) {
-              final noteRow = TableRow(
-                decoration: BoxDecoration(color: bgColor),
-                children: [
-                  const SizedBox.shrink(),
-                  const SizedBox.shrink(),
-                  const SizedBox.shrink(),
-                  const SizedBox.shrink(),
-                  const SizedBox.shrink(),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6, right: 4),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _theme.accent.withOpacity(0.07),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: _theme.accent.withOpacity(0.2)),
-                      ),
-                      child: Text(e.textValue!,
-                        style: TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: _theme.captionSize,
-                          color: _theme.inkMedium,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
+                // Heading dana
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: _theme.surface,
+                    border: Border(
+                      bottom: BorderSide(color: _theme.accent.withValues(alpha: 0.4), width: 1.5),
                     ),
                   ),
-                ],
-              );
-              return [mainRow, noteRow];
-            }
+                  child: Row(children: [
+                    Text(_fmtDay(dt), style: TextStyle(
+                      fontFamily: 'monospace', fontSize: _theme.captionSize,
+                      fontWeight: FontWeight.bold, color: _theme.ink)),
+                    const SizedBox(width: 10),
+                    Text(_fmtDate(dt), style: TextStyle(
+                      fontFamily: 'monospace', fontSize: _theme.captionSize,
+                      fontWeight: FontWeight.bold, color: _theme.ink)),
+                    const Spacer(),
+                    Text('${dayEntries.length}', style: TextStyle(
+                      fontFamily: 'monospace', fontSize: _theme.captionSize,
+                      color: _theme.inkFaint)),
+                  ]),
+                ),
+                // Tabela unosa za taj dan
+                Table(
+                  columnWidths: _colWidths,
+                  border: TableBorder(
+                    verticalInside: BorderSide(color: _theme.border, width: 1),
+                    horizontalInside: BorderSide(color: _theme.border.withValues(alpha: 0.4), width: 0.5),
+                  ),
+                  children: dayEntries.asMap().entries.expand((entry) {
+                    final i   = entry.key;
+                    final e   = entry.value;
+                    final btn = _buttonFor(e.buttonId);
+                    final isText    = e.type == LogType.text;
+                    final isDeleted = e.deleted;
 
-            return [mainRow];
+                    final deltaStr = e.delta != null
+                        ? (e.delta! > 0 ? '+\${e.delta}' : '\${e.delta}')
+                        : (isText ? 'T' : 'S');
+
+                    final labelStr = isText
+                        ? (btn?.getLabel(_tr.language) ?? e.buttonId ?? '')
+                        : (e.type == LogType.settings
+                            ? (e.textValue ?? 'settings')
+                            : (btn?.getLabel(_tr.language) ?? e.buttonId ?? ''));
+
+                    Color dc = _theme.inkMedium;
+                    if (deltaStr.startsWith('+')) dc = _theme.positive;
+                    if (deltaStr.startsWith('-')) dc = _theme.destructive;
+
+                    final baseSt = TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize:   _theme.captionSize,
+                      color:      isDeleted ? _theme.inkFaint : _theme.inkMedium,
+                      decoration: isDeleted ? TextDecoration.lineThrough : TextDecoration.none,
+                    );
+
+                    final bgColor = i % 2 == 0 ? _theme.background : _theme.surface;
+
+                    final mainRow = TableRow(
+                      decoration: BoxDecoration(color: bgColor),
+                      children: [
+                        _dCell(_fmtTime(e.dateTime), baseSt),
+                        _dCell(
+                          btn?.symbol ?? (e.type == LogType.settings ? 'S' : '?'),
+                          baseSt.copyWith(fontSize: _theme.captionSize + 2, decoration: TextDecoration.none),
+                        ),
+                        _dCell(deltaStr, baseSt.copyWith(color: dc, decoration: TextDecoration.none)),
+                        _dCell(
+                          isText && e.textValue != null && e.textValue!.isNotEmpty
+                              ? e.textValue!
+                              : labelStr,
+                          baseSt, overflow: TextOverflow.ellipsis),
+                      ],
+                    );
+                    return [mainRow];
+                  }).toList(),
+                ),
+                const SizedBox(height: 12),
+              ],
+            );
           }).toList(),
         ),
       ),
