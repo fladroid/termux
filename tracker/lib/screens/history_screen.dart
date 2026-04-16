@@ -91,7 +91,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   String _p(int n)             => n.toString().padLeft(2, '0');
-  String _dateKey(DateTime dt)  => '\${dt.year}-\${_p(dt.month)}-\${_p(dt.day)}';
+  String _dateKey(DateTime dt)  => '${dt.year}-${_p(dt.month)}-${_p(dt.day)}';
   String _fmtDate(DateTime dt) => '${_p(dt.day)}.${_p(dt.month)}.${dt.year.toString().substring(2)}';
   String _fmtTime(DateTime dt) => '${_p(dt.hour)}:${_p(dt.minute)}';
   String _fmtDay(DateTime dt)  {
@@ -281,7 +281,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     verticalInside: BorderSide(color: _theme.border, width: 1),
                     horizontalInside: BorderSide(color: _theme.border.withValues(alpha: 0.4), width: 0.5),
                   ),
-                  children: dayEntries.asMap().entries.expand((entry) {
+                  children: [
+                    // Header red
+                    TableRow(
+                      decoration: BoxDecoration(color: _theme.surface),
+                      children: [
+                        _hCell(_tr.t('col_time')),
+                        _hCell(_tr.t('col_symbol')),
+                        _hCell(_tr.t('col_delta')),
+                        _hCell(_tr.t('col_label')),
+                      ],
+                    ),
+                    ...dayEntries.asMap().entries.expand((entry) {
                     final i   = entry.key;
                     final e   = entry.value;
                     final btn = _buttonFor(e.buttonId);
@@ -289,7 +300,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     final isDeleted = e.deleted;
 
                     final deltaStr = e.delta != null
-                        ? (e.delta! > 0 ? '+\${e.delta}' : '\${e.delta}')
+                        ? (e.delta! > 0 ? '+${e.delta}' : '${e.delta}')
                         : (isText ? 'T' : 'S');
 
                     final labelStr = isText
@@ -329,6 +340,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     );
                     return [mainRow];
                   }).toList(),
+                  ],
                 ),
                 const SizedBox(height: 12),
               ],
