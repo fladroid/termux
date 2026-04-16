@@ -9,46 +9,98 @@
   "buttons": [
     {
       "id": "btn_1",
-      "symbol": "★",
+      "symbol": "♠",
+      "type": "counter",
       "label": {
-        "en": "star",
-        "sr-lat": "zvezdica",
-        "sr-cyr": "звездица",
-        "hr": "zvjezdica"
-      },
-      "type": "counter"
+        "en": "spade",
+        "sr-lat": "pik",
+        "sr-cyr": "пик",
+        "hr": "pik",
+        "de": "Pik"
+      }
     },
     {
       "id": "btn_2",
-      "symbol": "●",
+      "symbol": "♥",
+      "type": "counter",
       "label": {
-        "en": "dot",
-        "sr-lat": "tackica",
-        "sr-cyr": "тачкица",
-        "hr": "točkica"
-      },
-      "type": "counter"
+        "en": "heart",
+        "sr-lat": "herc",
+        "sr-cyr": "херц",
+        "hr": "herc",
+        "de": "Herz"
+      }
     },
     {
       "id": "btn_3",
-      "symbol": "▲",
+      "symbol": "♦",
+      "type": "counter",
       "label": {
-        "en": "triangle",
-        "sr-lat": "trougao",
-        "sr-cyr": "троугао",
-        "hr": "trokut"
-      },
-      "type": "counter"
+        "en": "diamond",
+        "sr-lat": "karo",
+        "sr-cyr": "каро",
+        "hr": "karo",
+        "de": "Karo"
+      }
+    },
+    {
+      "id": "btn_4",
+      "symbol": "♣",
+      "type": "counter",
+      "label": {
+        "en": "club",
+        "sr-lat": "tref",
+        "sr-cyr": "треф",
+        "hr": "tref",
+        "de": "Kreuz"
+      }
     },
     {
       "id": "btn_text",
+      "symbol": "♤",
       "type": "text",
-      "symbol": "✎",
       "label": {
-        "en": "note",
-        "sr-lat": "beleska",
-        "sr-cyr": "белешка",
-        "hr": "biljeska"
+        "en": "note 1",
+        "sr-lat": "beleska 1",
+        "sr-cyr": "белешка 1",
+        "hr": "biljeska 1",
+        "de": "Notiz 1"
+      }
+    },
+    {
+      "id": "btn_text2",
+      "symbol": "♡",
+      "type": "text",
+      "label": {
+        "en": "note 2",
+        "sr-lat": "beleska 2",
+        "sr-cyr": "белешка 2",
+        "hr": "biljeska 2",
+        "de": "Notiz 2"
+      }
+    },
+    {
+      "id": "btn_text3",
+      "symbol": "♢",
+      "type": "text",
+      "label": {
+        "en": "note 3",
+        "sr-lat": "beleska 3",
+        "sr-cyr": "белешка 3",
+        "hr": "biljeska 3",
+        "de": "Notiz 3"
+      }
+    },
+    {
+      "id": "btn_text4",
+      "symbol": "♧",
+      "type": "text",
+      "label": {
+        "en": "note 4",
+        "sr-lat": "beleska 4",
+        "sr-cyr": "белешка 4",
+        "hr": "biljeska 4",
+        "de": "Notiz 4"
       }
     }
   ],

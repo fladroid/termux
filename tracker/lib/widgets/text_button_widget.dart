@@ -83,7 +83,11 @@ class _TextButtonWidgetState extends State<TextButtonWidget> {
           children: [
             Row(children: [
               Text(widget.button.symbol, style: TextStyle(
-                fontSize: _theme.symbolSize * 0.65)),
+                fontSize: _theme.symbolSize * 0.65,
+                color: (widget.button.symbol == '♡' || widget.button.symbol == '♢')
+                    ? const Color(0xFFD32F2F)
+                    : null,
+              )),
               const SizedBox(width: 6),
               if (widget.showLabel)
                 Expanded(child: Text(

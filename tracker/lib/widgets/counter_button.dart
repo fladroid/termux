@@ -54,7 +54,9 @@ class _CounterButtonState extends State<CounterButton> {
           // Simbol
           Text(widget.button.symbol, style: TextStyle(
             fontSize: _theme.symbolSize * 0.75,
-            color: fgColor,
+            color: (widget.button.symbol == '♥' || widget.button.symbol == '♦')
+                ? const Color(0xFFD32F2F)
+                : fgColor,
             height: 1.1,
           )),
 

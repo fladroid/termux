@@ -219,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Tracker v3.0.11', style: TextStyle(
+            Text('Tracker v3.0.12', style: TextStyle(
               fontFamily: 'monospace', fontSize: _theme.captionSize,
               fontWeight: FontWeight.w600, color: _theme.inkFaint,
               letterSpacing: 1.2)),
