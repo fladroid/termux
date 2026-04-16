@@ -94,14 +94,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final current = _values[button.id] ?? 0;
     if (delta < 0 && current <= 0) return;
     final newValue = await _db.changeValue(button.id, _selectedDate, delta);
-    await _db.addLog(type: LogType.counter, buttonId: button.id, delta: delta, timestamp: _selectedDate);
+    await _db.addLog(type: LogType.counter, buttonId: button.id, delta: delta, timestamp: _entryTimestamp());
     setState(() => _values[button.id] = newValue);
   }
 
   Future<void> _handleTextSave(ButtonModel button, String text) async {
     final allowed = await _checkDateWarning(_selectedDate);
     if (!allowed) return;
-    await _db.saveTextValue(button.id, _selectedDate, text, timestamp: _selectedDate);
+    await _db.saveTextValue(button.id, _selectedDate, text, timestamp: _entryTimestamp());
     setState(() => _textValues[button.id] = text);
   }
 
@@ -141,6 +141,13 @@ class _HomeScreenState extends State<HomeScreen> {
       for (final id in counterIds) { _values[id] = 0; }
       for (final id in textIds)    { _textValues[id] = ''; }
     });
+  }
+
+  // Timestamp = datum iz _selectedDate + trenutno stvarno vrijeme
+  DateTime _entryTimestamp() {
+    final now = DateTime.now();
+    return DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day,
+        now.hour, now.minute, now.second);
   }
 
   void _changeDate(int days) {
@@ -223,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Tracker v3.0.19', style: TextStyle(
+            Text('Tracker v3.0.20', style: TextStyle(
               fontFamily: 'monospace', fontSize: _theme.captionSize,
               fontWeight: FontWeight.w600, color: _theme.inkFaint,
               letterSpacing: 1.2)),
