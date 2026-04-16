@@ -28,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool               _showLabels = true;
   DateTime           _selectedDate = DateTime.now();
   bool               _loading    = true;
+  int                _slideDirection = 1; // 1 = lijevo (sljedeći), -1 = desno (prethodni)
   final Set<String>  _warnedDates = {};
   List<Map<String, String>> _languages = [];
   String             _currentLang = 'en';
@@ -137,7 +138,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _changeDate(int days) {
-    setState(() { _selectedDate = _selectedDate.add(Duration(days: days)); _loading = true; });
+    setState(() {
+      _slideDirection = days > 0 ? 1 : -1;
+      _selectedDate = _selectedDate.add(Duration(days: days));
+      _loading = true;
+    });
     _load();
   }
 
@@ -170,9 +175,24 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: _theme.background,
           body: SafeArea(child: Column(children: [
             _buildTopBar(),
-            Expanded(child: _loading
+            Expanded(
+              child: _loading
                 ? const Center(child: CircularProgressIndicator())
-                : _buildContent()),
+                : AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    transitionBuilder: (child, animation) {
+                      final offset = Tween<Offset>(
+                        begin: Offset(_slideDirection.toDouble(), 0),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut));
+                      return SlideTransition(position: offset, child: child);
+                    },
+                    child: KeyedSubtree(
+                      key: ValueKey(_selectedDate.toIso8601String()),
+                      child: _buildContent(),
+                    ),
+                  ),
+            ),
             _buildBottomBar(),
           ])),
         ),
