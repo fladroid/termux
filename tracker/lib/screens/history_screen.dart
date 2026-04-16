@@ -31,7 +31,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   // Dan | Datum | Vr. | Sim | +/- | Oznaka
   static const Map<int, TableColumnWidth> _colWidths = {
     0: FlexColumnWidth(1.6),  // Dan  (Pon)
-    1: FlexColumnWidth(2.8),  // Datum (dd.mm.yyyy)
+    1: FlexColumnWidth(2.0),  // Datum (dd.mm.yy)
     2: FlexColumnWidth(1.8),  // Vrijeme (hh:mm)
     3: FlexColumnWidth(1.0),  // Simbol
     4: FlexColumnWidth(1.4),  // +/-
@@ -93,7 +93,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   String _p(int n)             => n.toString().padLeft(2, '0');
-  String _fmtDate(DateTime dt) => '${_p(dt.day)}.${_p(dt.month)}.${dt.year}';
+  String _fmtDate(DateTime dt) => '${_p(dt.day)}.${_p(dt.month)}.${dt.year.toString().substring(2)}';
   String _fmtTime(DateTime dt) => '${_p(dt.hour)}:${_p(dt.minute)}';
   String _fmtDay(DateTime dt)  {
     final name = _tr.dayName(dt.weekday);
@@ -198,6 +198,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         border: Border(bottom: BorderSide(color: _theme.border, width: 1.5))),
       child: Table(
         columnWidths: _colWidths,
+        border: TableBorder(
+          verticalInside: BorderSide(color: _theme.border, width: 1),
+        ),
         children: [
           TableRow(children: [
             _hCell(_tr.t('col_day')),
@@ -214,11 +217,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _hCell(String text) {
     return Padding(
-      padding: const EdgeInsets.only(right: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Text(text,
         style: TextStyle(
-          fontFamily: 'monospace', fontSize: _theme.captionSize - 1,
-          fontWeight: FontWeight.w600, color: _theme.inkFaint),
+          fontFamily: 'monospace', fontSize: _theme.captionSize,
+          fontWeight: FontWeight.bold, color: _theme.ink),
         overflow: TextOverflow.ellipsis,
       ),
     );
@@ -236,6 +239,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Table(
           columnWidths: _colWidths,
+          border: TableBorder(
+            verticalInside: BorderSide(color: _theme.border, width: 1),
+            horizontalInside: BorderSide(color: _theme.border.withOpacity(0.5), width: 0.5),
+          ),
           children: _entries.asMap().entries.expand((entry) {
             final i   = entry.key;
             final e   = entry.value;
@@ -324,7 +331,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _dCell(String text, TextStyle style, {TextOverflow overflow = TextOverflow.clip}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       child: Text(text, style: style, overflow: overflow, softWrap: false),
     );
   }
