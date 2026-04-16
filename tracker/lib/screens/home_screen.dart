@@ -219,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Tracker v3.0.12', style: TextStyle(
+            Text('Tracker v3.0.13', style: TextStyle(
               fontFamily: 'monospace', fontSize: _theme.captionSize,
               fontWeight: FontWeight.w600, color: _theme.inkFaint,
               letterSpacing: 1.2)),
@@ -340,10 +340,10 @@ class _HomeScreenState extends State<HomeScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
+                crossAxisCount: 2,
                 crossAxisSpacing: 8,
                 mainAxisSpacing: 8,
-                childAspectRatio: 1.2,
+                childAspectRatio: 1.8,
               ),
               itemCount: counters.length,
               itemBuilder: (ctx, i) {
@@ -358,18 +358,29 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
 
-          // Text containeri ispod countera
+          // Text containeri ispod countera — 2×2 grid
           if (texts.isNotEmpty) ...[
             const SizedBox(height: 12),
-            ...texts.map((btn) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: TextButtonWidget(
-                button:    btn,
-                savedText: _textValues[btn.id],
-                showLabel: _showLabels,
-                onSave:    (text) => _handleTextSave(btn, text),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                childAspectRatio: 2.4,
               ),
-            )),
+              itemCount: texts.length,
+              itemBuilder: (ctx, i) {
+                final btn = texts[i];
+                return TextButtonWidget(
+                  button:    btn,
+                  savedText: _textValues[btn.id],
+                  showLabel: _showLabels,
+                  onSave:    (text) => _handleTextSave(btn, text),
+                );
+              },
+            ),
           ],
         ],
       ),

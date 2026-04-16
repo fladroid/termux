@@ -9,7 +9,7 @@
   "buttons": [
     {
       "id": "btn_1",
-      "symbol": "♠",
+      "symbol": "♤",
       "type": "counter",
       "label": {
         "en": "spade",
@@ -21,7 +21,7 @@
     },
     {
       "id": "btn_2",
-      "symbol": "♥",
+      "symbol": "♡",
       "type": "counter",
       "label": {
         "en": "heart",
@@ -33,7 +33,7 @@
     },
     {
       "id": "btn_3",
-      "symbol": "♦",
+      "symbol": "♢",
       "type": "counter",
       "label": {
         "en": "diamond",
@@ -45,7 +45,7 @@
     },
     {
       "id": "btn_4",
-      "symbol": "♣",
+      "symbol": "♧",
       "type": "counter",
       "label": {
         "en": "club",
