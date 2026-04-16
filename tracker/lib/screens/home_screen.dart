@@ -31,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int                _slideDirection = 1; // 1 = lijevo (sljedeći), -1 = desno (prethodni)
   String             _animationKey = ''; // mijenja se tek kad podaci stignu
   final Set<String>  _warnedDates = {};
+  bool               _allowPastFuture = false;
   List<Map<String, String>> _languages = [];
   String             _currentLang = 'en';
 
@@ -41,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _loading = true);
     final buttons     = await _config.loadButtons();
     final showLabels  = await _config.getShowLabels();
+    final allowPastFuture = await _config.getAllowPastFuture();
     final values      = await _db.getValuesForDate(_selectedDate);
     final textValues  = await _db.getTextValuesForDate(_selectedDate);
     final languages   = await _config.loadLanguages();
@@ -48,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _buttons    = buttons;
       _showLabels = showLabels;
+      _allowPastFuture = allowPastFuture;
       _values     = values;
       _animationKey = '${_slideDirection > 0 ? "R" : "L"}_${_selectedDate.toIso8601String()}';
       _textValues = textValues;
@@ -66,6 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<bool> _checkDateWarning(DateTime dt) async {
     if (_isToday(dt)) return true;
+    if (_allowPastFuture) return true;
     final key = _dateKey(dt);
     if (_warnedDates.contains(key)) return true;
     final isPast = dt.isBefore(DateTime.now());
@@ -219,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Tracker v3.0.14', style: TextStyle(
+            Text('Tracker v3.0.15', style: TextStyle(
               fontFamily: 'monospace', fontSize: _theme.captionSize,
               fontWeight: FontWeight.w600, color: _theme.inkFaint,
               letterSpacing: 1.2)),
@@ -358,6 +362,17 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
 
+          // Separator
+          if (counters.isNotEmpty && texts.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Center(
+                child: SizedBox(
+                  width: 80,
+                  child: Divider(color: _theme.border, thickness: 1),
+                ),
+              ),
+            ),
           // Text containeri ispod countera — 2×2 grid
           if (texts.isNotEmpty) ...[
             const SizedBox(height: 12),

@@ -23,6 +23,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _language   = 'en';
   bool   _showLabels     = true;
   bool   _externalAccess = false;
+  bool   _allowPastFuture = false;
   String _size       = 'medium';
   String _contrast   = 'normal';
   bool   _loading    = true;
@@ -40,9 +41,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final languages = await _config.loadLanguages();
     final stats     = await _db.getDbStats();
     final extAccess  = await _config.getExternalAccess();
+    final allowPastFuture = await _config.getAllowPastFuture();
     setState(() {
       _language = lang; _showLabels = labels;
       _externalAccess = extAccess;
+      _allowPastFuture = allowPastFuture;
       _size = size; _contrast = contrast;
       _languages = languages; _dbStats = stats; _loading = false;
     });
@@ -129,6 +132,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _settingsRow(label: _tr.t('settings_show_labels'),
           trailing: Switch(value: _showLabels,
             onChanged: (v) async { await _config.setShowLabels(v); setState(() => _showLabels = v); },
+          )),
+        _settingsRow(label: _tr.t('settings_allow_past_future'),
+          trailing: Switch(value: _allowPastFuture,
+            onChanged: (v) async { await _config.setAllowPastFuture(v); setState(() => _allowPastFuture = v); },
             activeColor: _theme.accent)),
         const SizedBox(height: 8),
         _settingsRow(label: _tr.t('settings_external_access'),

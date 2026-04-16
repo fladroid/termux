@@ -218,7 +218,8 @@
       "clean_ok": "Clean",
       "clean_done": "Removed {count} entries.",
       "text_hint": "Enter your note...",
-      "text_tap_to_edit": "tap to add note"
+      "text_tap_to_edit": "tap to add note",
+      "settings_allow_past_future": "Allow editing past & future dates"
     },
     "sr-lat": {
       "today": "Danas",
@@ -333,7 +334,8 @@
       "clean_ok": "Ocisti",
       "clean_done": "Uklonjeno {count} unosa.",
       "text_hint": "Unesite beleski...",
-      "text_tap_to_edit": "kliknite za belesku"
+      "text_tap_to_edit": "kliknite za belesku",
+      "settings_allow_past_future": "Dozvoli unos u proslost i buducnost"
     },
     "sr-cyr": {
       "today": "Данас",
@@ -448,7 +450,8 @@
       "clean_ok": "Очисти",
       "clean_done": "Уклоњено {count} уноса.",
       "text_hint": "Унесите белешку...",
-      "text_tap_to_edit": "кликните за белешку"
+      "text_tap_to_edit": "кликните за белешку",
+      "settings_allow_past_future": "Дозволи унос у прошлост и будућност"
     },
     "hr": {
       "today": "Danas",
@@ -563,7 +566,8 @@
       "clean_ok": "Ocisti",
       "clean_done": "Uklonjeno {count} unosa.",
       "text_hint": "Unesite biljesku...",
-      "text_tap_to_edit": "kliknite za biljesku"
+      "text_tap_to_edit": "kliknite za biljesku",
+      "settings_allow_past_future": "Dozvoli unos u prošlost i budućnost"
     },
     "de": {
       "today": "Heute",
@@ -678,7 +682,8 @@
       "clean_ok": "Bereinigen",
       "clean_done": "{count} Einträge entfernt.",
       "text_hint": "Notiz eingeben...",
-      "text_tap_to_edit": "Tippen zum Bearbeiten"
+      "text_tap_to_edit": "Tippen zum Bearbeiten",
+      "settings_allow_past_future": "Vergangene & zukünftige Daten bearbeiten"
     }
   },
   "languages": [

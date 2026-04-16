@@ -19,6 +19,7 @@ class ConfigService {
   static const _extAccessKey  = 'external_access';
   static const _sizeKey     = 'size';
   static const _contrastKey = 'contrast';
+  static const _allowPastFutureKey = 'allow_past_future';
 
   Map<String, dynamic>? _cache;
   final _tr = TranslationService();
@@ -107,6 +108,16 @@ class ConfigService {
   Future<void> setExternalAccess(bool v) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_extAccessKey, v);
+  }
+
+  Future<bool> getAllowPastFuture() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_allowPastFutureKey) ?? false;
+  }
+
+  Future<void> setAllowPastFuture(bool v) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_allowPastFutureKey, v);
   }
 
   Future<String> getSize() async {
