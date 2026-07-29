@@ -2,7 +2,7 @@ name: tracker
 description: Osobni tracker simbola — offline, konfigurabilan, višejezičan.
 
 publish_to: 'none'
-version: 3.0.20+20
+version: 3.0.21+21
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
